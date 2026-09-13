@@ -599,5 +599,17 @@ body.theme-chalkboard #node-image-preview-container p {
   color: #ecfdf5 !important;
 }
 
+/* 🌟 右下 Hiramek ブランドタイトルの黒板モード対応 */
+body.theme-chalkboard #brand-watermark {
+  background-color: rgba(20, 56, 37, 0.85) !important;
+  border-color: rgba(52, 211, 153, 0.25) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
 
+body.theme-chalkboard #brand-watermark h1 {
+  color: #f1f5f9 !important;
+}
 
+body.theme-chalkboard #brand-watermark span {
+  color: #cbd5e1 !important;
+}

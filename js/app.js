@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 📷 チャット欄の画像添付要素（ミル造さんご要望: 入力欄の真横・直上に設置！）
   const chatAttachImageBtn = document.getElementById('chat-attach-image-btn');
   const chatClipImageBtn = document.getElementById('chat-clip-image-btn');
+  const chatImageFileInput = document.getElementById('chat-image-file-input');
   const chatAttachedImageBadge = document.getElementById('chat-attached-image-badge');
   const chatAttachedImageThumb = document.getElementById('chat-attached-image-thumb');
   const chatDetachImageBtn = document.getElementById('chat-detach-image-btn');
@@ -1179,10 +1180,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // 📷 参照画像の添付・削除・ライトボックス制御（ミル造さんご要望）
   // ===========================================================================
   function attachImageToCurrentNode(file) {
-    const selId = state.data.selectedNodeId;
+    let selId = state.data.selectedNodeId;
     if (!selId) {
-      alert('画像を添付するノードを選択してください。');
-      return;
+      const allNodeIds = Object.keys(state.data.nodes);
+      if (allNodeIds.length > 0) {
+        selId = allNodeIds[0];
+        state.selectNode(selId);
+        canvas.focusNode(selId);
+      } else {
+        alert('画像を添付するノードを選択してください。');
+        return;
+      }
     }
     const node = state.data.nodes[selId];
     if (!node) return;
@@ -1207,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 📷 画像選択ダイアログの起動共通処理（チャット欄・エディタ双方から呼び出し）
+  // 📷 画像選択ダイアログの起動共通処理（エディタ側からの呼び出し用）
   const triggerImageUpload = () => {
     let selId = state.data.selectedNodeId;
     if (!selId) {
@@ -1221,15 +1229,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
     }
-    if (nodeImageFileInput) {
-      nodeImageFileInput.value = '';
-      nodeImageFileInput.click();
+    const targetInput = chatImageFileInput || nodeImageFileInput;
+    if (targetInput) {
+      targetInput.value = '';
+      targetInput.click();
     }
   };
 
-  // 🌟 チャット欄の画像添付ボタン（直上バー ＆ 入力枠内の両方に対応！）
-  if (chatAttachImageBtn) chatAttachImageBtn.addEventListener('click', triggerImageUpload);
-  if (chatClipImageBtn) chatClipImageBtn.addEventListener('click', triggerImageUpload);
+  // 🌟 チャット欄のファイル入力変更イベント（labelクリックでOSダイアログが直接開いた後の処理）
+  if (chatImageFileInput) {
+    chatImageFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        attachImageToCurrentNode(file);
+      }
+      chatImageFileInput.value = '';
+    });
+  }
+
+  // 🌟 チャット欄ボタンクリック時のノード事前選択保証
+  const ensureSelectedNodeForUpload = () => {
+    if (!state.data.selectedNodeId) {
+      const allNodeIds = Object.keys(state.data.nodes);
+      if (allNodeIds.length > 0) {
+        state.selectNode(allNodeIds[0]);
+        canvas.focusNode(allNodeIds[0]);
+      }
+    }
+  };
+  if (chatAttachImageBtn) chatAttachImageBtn.addEventListener('click', ensureSelectedNodeForUpload);
+  if (chatClipImageBtn) chatClipImageBtn.addEventListener('click', ensureSelectedNodeForUpload);
 
   // 🌟 チャット欄バッジの削除（×）ボタン
   if (chatDetachImageBtn) {
