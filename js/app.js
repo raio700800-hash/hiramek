@@ -1888,6 +1888,28 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.className = 'export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer';
       }
     });
+
+    // 🌟 タブに応じてフッターの「ダウンロード」ボタンの表示とスタイルを最適化！
+    if (type === 'png') {
+      if (btnExportDownload) {
+        btnExportDownload.innerHTML = `<span>💾 PNG画像をダウンロード</span>`;
+        btnExportDownload.className = 'flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow cursor-pointer active:scale-95';
+      }
+      if (btnExportCopy) {
+        btnExportCopy.innerHTML = `<span>📋 クリップボードにコピー</span>`;
+        btnExportCopy.className = 'flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer';
+      }
+    } else {
+      if (btnExportDownload) {
+        btnExportDownload.innerHTML = `<span>💾 ダウンロード保存</span>`;
+        btnExportDownload.className = 'flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer';
+      }
+      if (btnExportCopy) {
+        btnExportCopy.innerHTML = `<span>📋 クリップボードにコピー</span>`;
+        btnExportCopy.className = 'flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow cursor-pointer';
+      }
+    }
+
     updateExportPreview();
   };
 
@@ -1923,36 +1945,97 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 🖼️ PNG画像のダウンロード共通実行関数（URL.createObjectURLによる確実なファイル保存）
+  function triggerPngDownload() {
+    if (!currentPngBlob && !currentPngDataUrl) {
+      alert('画像を生成中です。少々お待ちください...');
+      return;
+    }
+
+    const rootNode = Object.values(state.data.nodes).find(n => !n.parentId) || { title: 'hiramek' };
+    const safeTitle = (rootNode.title || 'hiramek').replace(/[\\/:*?"<>| ]/g, '_').substring(0, 20);
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `hiramek-mindmap-${safeTitle}-${dateStr}.png`;
+
+    // 長大なDataURLではなくBlob ObjectURLを使用（ブラウザのURL長制限を完全回避）
+    let downloadUrl = currentPngDataUrl;
+    let revokeNeeded = false;
+    if (currentPngBlob) {
+      downloadUrl = URL.createObjectURL(currentPngBlob);
+      revokeNeeded = true;
+    }
+
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    if (revokeNeeded) {
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
+    }
+
+    // 成功フィードバック
+    if (btnExportDownload) {
+      const origHtml = btnExportDownload.innerHTML;
+      btnExportDownload.innerHTML = `<span>✔️ ダウンロード開始！</span>`;
+      btnExportDownload.classList.replace('bg-amber-500', 'bg-emerald-600');
+      btnExportDownload.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-700');
+      setTimeout(() => {
+        btnExportDownload.innerHTML = origHtml;
+        btnExportDownload.classList.replace('bg-emerald-600', 'bg-amber-500');
+        btnExportDownload.classList.replace('hover:bg-emerald-700', 'hover:bg-amber-600');
+      }, 2000);
+    }
+  }
+
+  // 🖼️ PNG画像のクリップボードコピー共通関数
+  async function triggerPngCopy() {
+    if (!currentPngBlob) {
+      alert('画像を生成中です。少し待ってから再度お試しください。');
+      return;
+    }
+    try {
+      if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': currentPngBlob })
+        ]);
+        if (btnExportCopy) {
+          const origText = btnExportCopy.innerHTML;
+          btnExportCopy.innerHTML = `<span>✔️ 画像をコピー完了！</span>`;
+          btnExportCopy.classList.replace('bg-amber-500', 'bg-emerald-600');
+          btnExportCopy.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-700');
+          setTimeout(() => {
+            btnExportCopy.innerHTML = origText;
+            btnExportCopy.classList.replace('bg-emerald-600', 'bg-amber-500');
+            btnExportCopy.classList.replace('hover:bg-emerald-700', 'hover:bg-amber-600');
+          }, 2000);
+        }
+      } else {
+        alert('お使いのブラウザでは画像の直接クリップボードコピーに対応していません。「ダウンロード」をお使いください。');
+      }
+    } catch (err) {
+      console.warn('クリップボードコピー失敗:', err);
+      alert('画像のコピーに失敗しました。「ダウンロード」から保存してください。');
+    }
+  }
+
+  // 🖼️ プレビュー枠内のクイックアクションボタン
+  const btnQuickDownloadPng = document.getElementById('btn-quick-download-png');
+  const btnQuickCopyPng = document.getElementById('btn-quick-copy-png');
+  if (btnQuickDownloadPng) {
+    btnQuickDownloadPng.addEventListener('click', triggerPngDownload);
+  }
+  if (btnQuickCopyPng) {
+    btnQuickCopyPng.addEventListener('click', triggerPngCopy);
+  }
+
   // クリップボードにコピー（テキスト＆PNG画像両対応！）
   if (btnExportCopy) {
     btnExportCopy.addEventListener('click', async () => {
-      // 🖼️ PNG画像のクリップボードコピー
       if (currentExportType === 'png') {
-        if (!currentPngBlob) {
-          alert('画像の生成中です。少し待ってから再度お試しください。');
-          return;
-        }
-        try {
-          if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-            await navigator.clipboard.write([
-              new ClipboardItem({ 'image/png': currentPngBlob })
-            ]);
-            const origText = btnExportCopy.innerHTML;
-            btnExportCopy.innerHTML = `<span>✔️ 画像をコピー完了！</span>`;
-            btnExportCopy.classList.replace('bg-amber-500', 'bg-emerald-600');
-            btnExportCopy.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-700');
-            setTimeout(() => {
-              btnExportCopy.innerHTML = origText;
-              btnExportCopy.classList.replace('bg-emerald-600', 'bg-amber-500');
-              btnExportCopy.classList.replace('hover:bg-emerald-700', 'hover:bg-amber-600');
-            }, 2000);
-          } else {
-            alert('お使いのブラウザでは画像の直接クリップボードコピーに対応していません。「ファイル保存」をお使いください。');
-          }
-        } catch (err) {
-          console.warn('クリップボードコピー失敗:', err);
-          alert('画像のコピーに失敗しました。「ファイル保存」からダウンロードしてください。');
-        }
+        await triggerPngCopy();
         return;
       }
 
@@ -1978,28 +2061,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // ファイルとして保存（ダウンロード：テキスト＆PNG画像両対応！）
   if (btnExportDownload) {
     btnExportDownload.addEventListener('click', () => {
-      const rootNode = Object.values(state.data.nodes).find(n => !n.parentId) || { title: 'hiramek' };
-      const safeTitle = (rootNode.title || 'hiramek').replace(/[\\/:*?"<>| ]/g, '_').substring(0, 20);
-      const dateStr = new Date().toISOString().slice(0, 10);
-
       // 🖼️ PNG画像のファイルダウンロード
       if (currentExportType === 'png') {
-        if (!currentPngBlob && !currentPngDataUrl) {
-          alert('画像の生成中です。少し待ってから再度お試しください。');
-          return;
-        }
-        const a = document.createElement('a');
-        a.href = currentPngDataUrl;
-        a.download = `hiramek-mindmap-${safeTitle}-${dateStr}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        triggerPngDownload();
         return;
       }
 
       // 📝 テキストファイルのダウンロード
       const content = exportPreviewTextarea.value;
       if (!content) return;
+
+      const rootNode = Object.values(state.data.nodes).find(n => !n.parentId) || { title: 'hiramek' };
+      const safeTitle = (rootNode.title || 'hiramek').replace(/[\\/:*?"<>| ]/g, '_').substring(0, 20);
+      const dateStr = new Date().toISOString().slice(0, 10);
 
       let filename = `hiramek-${safeTitle}-${dateStr}.md`;
       let mimeType = 'text/markdown;charset=utf-8';

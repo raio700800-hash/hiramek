@@ -930,19 +930,27 @@
                   title="書き出し内容プレビュー"></textarea>
         <!-- 🖼️ 画像プレビューエリア（PNGタブ選択時に表示） -->
         <div id="export-image-preview-wrapper" class="hidden w-full flex-1 p-2 bg-slate-100/70 border border-slate-200 rounded-xl flex flex-col items-center justify-center overflow-auto">
-          <img id="export-image-preview" class="max-h-[260px] max-w-full object-contain rounded-lg shadow-md border border-slate-200/80 bg-white" alt="マインドマップ画像プレビュー">
+          <div class="flex items-center gap-2 mb-2">
+            <button id="btn-quick-download-png" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span>💾 このPNG画像をダウンロード</span>
+            </button>
+            <button id="btn-quick-copy-png" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold shadow-2xs cursor-pointer active:scale-95 transition-all">
+              <span>📋 コピー</span>
+            </button>
+          </div>
+          <img id="export-image-preview" class="max-h-[220px] max-w-full object-contain rounded-lg shadow-md border border-slate-200/80 bg-white" alt="マインドマップ画像プレビュー">
           <p class="text-[11px] text-slate-500 mt-1.5 font-medium">💡 高解像度（Retina 2x）の鮮明なPNG画像として生成されます</p>
         </div>
       </div>
 
-      <!-- モーダルフッター (コピー ＆ ファイル保存) -->
+      <!-- モーダルフッター (ダウンロード保存 ＆ コピー) -->
       <div class="flex items-center justify-between shrink-0 pt-2 border-t border-slate-100">
         <button id="cancel-export-modal-btn" type="button" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">
           閉じる
         </button>
         <div class="flex items-center gap-2">
           <button id="btn-export-download" type="button" class="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer">
-            <span>💾 ファイル保存</span>
+            <span>💾 ダウンロード保存</span>
           </button>
           <button id="btn-export-copy" type="button" class="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow cursor-pointer">
             <span>📋 クリップボードにコピー</span>
