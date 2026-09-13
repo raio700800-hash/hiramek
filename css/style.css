@@ -1,0 +1,359 @@
+/* ==========================================================================
+   🎨 思考マインドマップアプリ スタイルシート (style.css)
+   ミル造さん好みの「あたたかみのある優しい角丸デザイン」と滑らかな操作感を実現します。
+   ========================================================================== */
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* カスタムスクロールバー */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* キャンバス背景のドットグリッド */
+.canvas-bg-grid {
+  background-color: #f8fafc;
+  background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+/* ノード（カード）の基本スタイル */
+.mind-node {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.mind-node:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.06), 0 3px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* 選択中のノードを強調 */
+.mind-node.selected {
+  outline: 2px solid #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18), 0 10px 20px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* チャットから選択された時のピカッと光るアニメーション */
+@keyframes nodePulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.3);
+    transform: scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
+    transform: scale(1);
+  }
+}
+
+.node-highlight-pulse {
+  animation: nodePulseGlow 0.8s ease-in-out;
+}
+
+/* ノード接続線のスタイル（滑らかなベジェ曲線） */
+.tree-edge {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.tree-edge.highlighted {
+  stroke: #3b82f6;
+  stroke-width: 3px;
+}
+
+/* ★重要: アクションボタン（✏️ 左側編集, ＋ 右側追加, 🗑️ 右上削除）は選択時またはホバー時のみ表示！ */
+.node-actions,
+.node-action-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: scale(0.92);
+}
+
+.mind-node.selected .node-actions,
+.mind-node.selected .node-action-btn,
+.mind-node:hover .node-actions,
+.mind-node:hover .node-action-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+/* ノード誕生時のポップインアニメーション */
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  70% {
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.node-pop-in {
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* チャットメッセージのホバー効果 */
+.chat-msg-item {
+  cursor: pointer;
+}
+.chat-msg-item:hover {
+  filter: brightness(0.98);
+}
+
+/* ==========================================================================
+   💬 チャット会話ハイライト（選択中ノードを生み出した会話ペアの強調）
+   ミル造さんが「どの会話から生まれたノードか」をひと目で把握できるようにします。
+   ========================================================================== */
+
+@keyframes chatBubbleGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.35);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.6);
+    transform: scale(1.01);
+  }
+}
+
+.chat-bubble-highlighted {
+  position: relative;
+  outline: 3px solid #f59e0b !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4), 0 0 0 4px rgba(245, 158, 11, 0.25) !important;
+  animation: chatBubbleGlow 0.6s ease-out forwards;
+  z-index: 10;
+}
+
+/* AI吹き出しハイライト時は背景をほんのり暖色にして優しく強調 */
+.chat-msg-ai .chat-bubble-highlighted {
+  background-color: #fffbeb !important; /* amber-50 */
+  border-color: #f59e0b !important;
+}
+
+/* ユーザー吹き出しハイライト時は鮮やかな青のまま金色のオーラを放つ */
+.chat-msg-user .chat-bubble-highlighted {
+  border-color: #d97706 !important;
+}
+
+/* 「✨ このノードを生んだ会話」バッジ */
+.chat-origin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #92400e;
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   🖼️ Miro風フレームスタイル & 四隅リサイズハンドル
+   ========================================================================== */
+.canvas-frame-box {
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.canvas-frame-box:hover {
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+}
+
+/* リサイズハンドル */
+.frame-resize-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-color: #ffffff;
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10;
+}
+
+.canvas-frame-box:hover .frame-resize-handle {
+  opacity: 0.85;
+}
+
+.frame-resize-handle:hover {
+  opacity: 1 !important;
+  transform: scale(1.2);
+}
+
+.frame-resize-nw { top: -7px; left: -7px; cursor: nwse-resize; }
+.frame-resize-ne { top: -7px; right: -7px; cursor: nesw-resize; }
+.frame-resize-se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.frame-resize-sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
+
+/* ==========================================================================
+   🌙 目に優しい黒板モード（theme-chalkboard）
+   学校の黒板のような落ち着いた深緑と、チョーク調のやさしい淡色パレット
+   ========================================================================== */
+body.theme-chalkboard {
+  background-color: #0e2017;
+  color: #e2ebe5;
+}
+
+/* ヘッダー */
+body.theme-chalkboard header {
+  background-color: #0b1a12 !important;
+  border-bottom-color: #173525 !important;
+}
+
+body.theme-chalkboard header h1 {
+  color: #f1f7f3 !important;
+}
+
+/* キャンバス背景（黒板グリーン＋チョーク粉ドット） */
+body.theme-chalkboard .canvas-bg-grid {
+  background-color: #11261b !important;
+  background-image: radial-gradient(#204632 1.4px, transparent 1.4px) !important;
+}
+
+/* 左サイドバー */
+body.theme-chalkboard #left-sidebar {
+  background-color: #0e2218 !important;
+  border-right-color: #1a3c2a !important;
+}
+
+body.theme-chalkboard #chat-panel {
+  background-color: #0a1710 !important;
+}
+
+body.theme-chalkboard #node-editor-panel {
+  background-color: #0e2218 !important;
+}
+
+/* 入力欄 */
+body.theme-chalkboard input,
+body.theme-chalkboard textarea,
+body.theme-chalkboard select {
+  background-color: #142f21 !important;
+  color: #f0f7f3 !important;
+  border-color: #235239 !important;
+}
+
+body.theme-chalkboard input:focus,
+body.theme-chalkboard textarea:focus {
+  border-color: #68d391 !important;
+}
+
+/* ツールバー */
+body.theme-chalkboard section > div.absolute.top-4.right-4 {
+  background-color: rgba(14, 34, 24, 0.92) !important;
+  border-color: #204632 !important;
+}
+
+body.theme-chalkboard section > div.absolute.top-4.right-4 button,
+body.theme-chalkboard section > div.absolute.top-4.right-4 select {
+  color: #cbdad1 !important;
+}
+
+body.theme-chalkboard section > div.absolute.top-4.right-4 button:hover {
+  background-color: #1c422e !important;
+  color: #ffffff !important;
+}
+
+/* 接続線（チョークライン） */
+body.theme-chalkboard .tree-edge {
+  stroke: #416f55 !important;
+}
+
+body.theme-chalkboard .tree-edge.highlighted {
+  stroke: #f6e05e !important; /* チョークイエロー */
+}
+
+/* ノードカード（黒板上のメモ調） */
+body.theme-chalkboard .mind-node {
+  background-color: #163625 !important;
+  border-color: #2b5c40 !important;
+  color: #ecf5ef !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.theme-chalkboard .mind-node .text-slate-800 {
+  color: #f7faf8 !important;
+}
+
+body.theme-chalkboard .mind-node .text-slate-500,
+body.theme-chalkboard .mind-node .text-slate-600 {
+  color: #a3c4b0 !important;
+}
+
+body.theme-chalkboard .mind-node:hover {
+  border-color: #48bb78 !important;
+}
+
+body.theme-chalkboard .mind-node.selected {
+  outline-color: #68d391 !important;
+  box-shadow: 0 0 0 4px rgba(104, 211, 145, 0.25), 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* チャット吹き出し */
+body.theme-chalkboard .chat-bubble {
+  background-color: #142f21 !important;
+  color: #e2ebe5 !important;
+  border-color: #235239 !important;
+}
+
+/* モーダル */
+body.theme-chalkboard .fixed > div.bg-white {
+  background-color: #10261a !important;
+  color: #eef5f1 !important;
+  border-color: #204632 !important;
+}
+
+body.theme-chalkboard .fixed h3 {
+  color: #ffffff !important;
+}
+
+body.theme-chalkboard .fixed p {
+  color: #a9c7b5 !important;
+}
+
+body.theme-chalkboard .fixed label {
+  color: #d1e3d7 !important;
+}
+

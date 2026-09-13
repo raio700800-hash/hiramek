@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>思考マインドマップ — Chat-linked Mind Map App</title>
+  
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23f59e0b'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white'>🧠</text></svg>">
+  <meta name="theme-color" content="#f59e0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="思考マップ">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./css/style.css?v=14">
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen w-screen overflow-hidden flex flex-col">
+
+  <!-- 🌟 アプリケーション最上部ヘッダー -->
+  <header class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-30 shadow-xs">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-white text-lg shadow-xs">
+        🧠
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-slate-800 text-sm tracking-tight">思考マインドマップ</h1>
+          <span class="px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded-full border border-amber-200">
+            Chat-linked
+          </span>
+        </div>
+        <p class="text-[10px] text-slate-400">ミル造さんの思考をAIが広げる・深掘る・整理する</p>
+      </div>
+    </div>
+
+    <!-- ヘッダー右側アクションボタン群 -->
+    <div class="flex items-center gap-2">
+      <!-- 新しい題材を始めるボタン -->
+      <button id="btn-new-topic" 
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors shadow-2xs"
+              title="新しい思考整理の題材をスタート">
+        <span>🌱 新しい題材を始める</span>
+      </button>
+
+      <!-- ☀️/🌙 テーマ切替ボタン（ホワイトボード / 黒板） -->
+      <button id="btn-toggle-theme" 
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-all shadow-2xs cursor-pointer"
+              title="ホワイトボードモード／目に優しい黒板モードを切り替え">
+        <span id="theme-btn-icon">☀️</span>
+        <span id="theme-btn-text">ホワイトボード</span>
+      </button>
+
+      <!-- エクスポートボタン -->
+      <button id="btn-export" 
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              title="Markdown形式で書き出し">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+        <span>書き出し</span>
+      </button>
+
+      <!-- 設定ボタン (Gemini APIキー) -->
+      <button id="btn-settings" 
+              class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              title="APIキー・各種設定">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        <span class="sr-only">設定</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 📱 メインコンテンツエリア -->
+  <main class="flex-1 flex overflow-hidden relative">
+
+    <!-- 👈 左ペイン: チャット ＆ ノード詳細エディタ（折りたたみ可能） -->
+    <aside id="left-sidebar" 
+           class="w-96 bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-xs transition-all duration-300 relative">
+      
+      <!-- チャットヘッダー（折りたたみボタン付き） -->
+      <div class="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <span class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+          <span>💬 AI対話チャット</span>
+          <span class="text-[10px] text-slate-400 font-normal">会話タップでノードへジャンプ</span>
+        </span>
+        <button id="btn-collapse-sidebar" 
+                class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors"
+                title="左パネルをたたんで全画面キャンバスにする">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 🌱 選択中ノードの誕生きっかけバッジ（スクロール不要で常時一目瞭然！） -->
+      <div id="node-origin-card" class="px-3 py-2 bg-amber-50/90 border-b border-amber-200/60 flex items-center gap-2 text-xs shrink-0">
+        <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded shrink-0">きっかけ</span>
+        <span id="node-origin-text" class="text-slate-700 font-semibold truncate text-[11px]" title="このノードが生まれた問い">「マインドマップアプリ」のテーマから開始</span>
+      </div>
+
+      <!-- チャット対話履歴エリア（広々表示！） -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3">
+        <!-- JSでチャット履歴が描画されます -->
+      </div>
+
+      <!-- プロンプト入力欄（IME確定対応） -->
+      <div class="p-3 border-t border-slate-200 bg-white shrink-0">
+        <div class="relative flex items-center">
+          <textarea id="prompt-input" 
+                    rows="2"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-3 pr-10 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white resize-none"
+                    placeholder="選択中の題材について質問・相談・アイデア入力..."></textarea>
+          <button id="send-prompt-btn" 
+                  class="absolute right-2 bottom-2 p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors shadow-2xs"
+                  title="送信して思考を展開">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1">※Enterで送信、Shift+Enterで改行できます</p>
+      </div>
+
+      <!-- 選択ノードの詳細エディタ（重複見出し行を削除しスッキリ！） -->
+      <div class="border-t border-slate-200 p-3 bg-slate-50 shrink-0 space-y-2.5 max-h-[42%] overflow-y-auto">
+        <!-- タイトル編集 -->
+        <div>
+          <label class="block text-[10px] text-slate-500 mb-0.5">ノードの要約タイトル</label>
+          <input id="editor-node-title" 
+                 type="text" 
+                 class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                 placeholder="要約タイトル">
+        </div>
+
+        <!-- 詳細メモ編集（決定理由と一本化！） -->
+        <div>
+          <label class="block text-[10px] text-slate-500 mb-0.5">詳細な内容・メモ</label>
+          <textarea id="editor-node-content" 
+                    rows="2"
+                    class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                    placeholder="詳しい説明、決定理由、考察メモなど"></textarea>
+        </div>
+
+        <!-- 種別（第1タグ）と 役割・性質（第2タグ） -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">第1タグ: 種別</label>
+            <select id="editor-node-type" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium">
+              <option value="Idea">💡 アイデア (Idea)</option>
+              <option value="Task">📋 タスク (Task)</option>
+              <option value="Problem">⚠️ 課題 (Problem)</option>
+              <option value="Fact">📌 前提・事実 (Fact)</option>
+              <option value="Question">❓ 疑問・問い (Question)</option>
+              <option value="Goal">🎯 目標・ゴール (Goal)</option>
+              <option value="Inspiration">✨ ひらめき (Inspiration)</option>
+              <option value="Reference">📚 参考 (Reference)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">第2タグ: 役割・性質</label>
+            <select id="editor-node-role" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium">
+              <option value="None">未設定 (通常)</option>
+              <option value="Mechanism">🔧 仕組み (Mechanism)</option>
+              <option value="Solution">💡 解決策 (Solution)</option>
+              <option value="Ingenuity">✨ 工夫点 (Ingenuity)</option>
+              <option value="Verification">🧪 検証タスク (Verification)</option>
+              <option value="Perspective">👁️ 視点 (Perspective)</option>
+              <option value="Approach">🎯 アプローチ (Approach)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 判断ステータス（最終用） -->
+        <div>
+          <label class="block text-[10px] text-slate-500 mb-0.5">判断ステータス（最終段階）</label>
+          <select id="editor-node-status" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium">
+            <option value="None">未設定 (通常)</option>
+            <option value="Adopted">✅ 採用 (Adopted)</option>
+            <option value="InReview">⏳ 要検討 (In Review)</option>
+            <option value="Priority">🌟 最優先 (Priority)</option>
+            <option value="Done">🎉 完了 (Done)</option>
+            <option value="Rejected">❌ 却下 (Rejected)</option>
+          </select>
+        </div>
+
+        <!-- 🎨 ノードの色分け ＆ 📂 グループ設定（ミル造さんご要望！） -->
+        <div class="pt-1 space-y-1.5 bg-slate-100/70 p-2.5 rounded-xl border border-slate-200/80">
+          <div class="flex items-center justify-between">
+            <label class="text-[10px] font-bold text-slate-700 flex items-center gap-1">
+              <span>🎨</span>
+              <span>ノード色分け</span>
+            </label>
+            <span class="text-[9px] text-slate-400">ワンタップで色変更</span>
+          </div>
+
+          <!-- 7色カラーパレットボタン -->
+          <div id="node-color-palette" class="flex items-center justify-between gap-1 px-1">
+            <button class="color-btn w-6 h-6 rounded-full bg-white border-2 border-slate-300 hover:scale-110 transition-all shadow-2xs relative" data-color="default" title="標準（ホワイト）"></button>
+            <button class="color-btn w-6 h-6 rounded-full bg-blue-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative" data-color="blue" title="ブルー"></button>
+            <button class="color-btn w-6 h-6 rounded-full bg-emerald-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative" data-color="green" title="グリーン"></button>
+            <button class="color-btn w-6 h-6 rounded-full bg-amber-400 border-2 border-white hover:scale-110 transition-all shadow-2xs relative" data-color="amber" title="イエロー"></button>
+            <button class="color-btn w-6 h-6 rounded-full bg-purple-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative" data-color="purple" title="パープル"></button>
+            <button class="color-btn w-6 h-6 rounded-full bg-rose-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative" data-color="rose" title="ローズ"></button>
+            <button class="color-btn w-6 h-6 rounded-full bg-orange-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative" data-color="orange" title="オレンジ"></button>
+          </div>
+
+          <!-- グループ名入力 -->
+          <div class="pt-1">
+            <div class="flex items-center justify-between mb-0.5">
+              <label class="text-[10px] font-bold text-slate-700 flex items-center gap-1">
+                <span>📂</span>
+                <span>グループ名</span>
+              </label>
+              <span class="text-[9px] text-slate-400">右側マップに一覧表示</span>
+            </div>
+            <input id="editor-node-group" 
+                   type="text" 
+                   class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                   placeholder="例: 開発チーム、フェーズ1、UI改善">
+          </div>
+        </div>
+
+        <!-- 🏷️ ユーザー独自カスタムタグ管理 -->
+        <div class="pt-1">
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[10px] text-slate-500">🏷️ ミル造さんのカスタムタグ</label>
+            <button id="btn-create-tag" class="text-[10px] text-amber-600 hover:text-amber-800 font-semibold">＋タグ作成</button>
+          </div>
+          <div id="custom-tags-container" class="flex flex-wrap gap-1">
+            <!-- JSでユーザー作成タグがチェック式で描画されます -->
+          </div>
+        </div>
+
+        <!-- 8大AI思考コマンドボタン -->
+        <div class="pt-1">
+          <label class="block text-[10px] text-slate-500 mb-1">⚡ AI思考アシストコマンド</label>
+          
+          <div class="grid grid-cols-2 gap-1.5 mb-1.5">
+            <button id="cmd-expand-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-700 hover:text-amber-800 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>🌱 広げる</span>
+            </button>
+            <button id="cmd-deepen-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 hover:text-blue-800 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>🔍 深掘る</span>
+            </button>
+            <button id="cmd-alternative-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-purple-400 hover:bg-purple-50 text-slate-700 hover:text-purple-800 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>🔄 別視点</span>
+            </button>
+            <button id="cmd-taskify-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>📋 タスク化</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <button id="cmd-example-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-rose-400 hover:bg-rose-50 text-slate-700 hover:text-rose-800 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>🎯 具体例</span>
+            </button>
+            <!-- ★分かりやすく「なぜ？」に改名！ -->
+            <button id="cmd-why-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700 hover:text-indigo-800 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>❓ なぜ？</span>
+            </button>
+            <button id="cmd-proscons-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-teal-400 hover:bg-teal-50 text-slate-700 hover:text-teal-800 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>⚖️ 利点・注意</span>
+            </button>
+            <button id="cmd-summarize-btn" class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white border border-slate-200 hover:border-amber-500 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-lg text-xs font-medium transition-all shadow-2xs">
+              <span>🧹 まとめる</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 展開用フローティングボタン -->
+    <button id="btn-expand-sidebar" 
+            class="absolute top-4 left-4 z-30 p-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl shadow-md hidden items-center gap-1.5 text-xs font-medium transition-transform"
+            title="チャット＆エディタを開く">
+      <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+      </svg>
+      <span>エディタを開く</span>
+    </button>
+
+    <!-- 👉 右ペイン: マインドマップキャンバス -->
+    <section class="flex-1 relative flex flex-col overflow-hidden">
+      <!-- ツールバー -->
+      <div class="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-xl p-1.5 shadow-md">
+        <button id="btn-undo" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30" title="元に戻す (Undo)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 015 5v2m0 0l-4-4m4 4l4-4M3 10l4-4m-4 4l4 4"></path>
+          </svg>
+        </button>
+        <button id="btn-redo" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30" title="やり直す (Redo)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a5 5 0 00-5 5v2m0 0l4-4m-4 4l-4-4m15-6l-4-4m4 4l-4 4"></path>
+          </svg>
+        </button>
+
+        <div class="w-px h-4 bg-slate-200 mx-0.5"></div>
+
+        <!-- 📐 レイアウト切替セレクター -->
+        <div class="relative flex items-center">
+          <select id="select-layout-mode" class="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer" title="マインドマップの展開スタイルを切り替え">
+            <option value="radial-tree">🌟 放射型 (本格マップ)</option>
+            <option value="horizontal-tree">🌲 水平ツリー (階層)</option>
+            <option value="freeform">🎨 自由配置 (フリー)</option>
+          </select>
+        </div>
+
+        <button id="btn-tidy" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" title="ツリーを綺麗に自動整列">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"></path>
+          </svg>
+        </button>
+
+        <button id="btn-zoom-in" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" title="拡大">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+        </button>
+        <button id="btn-zoom-out" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" title="縮小">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+          </svg>
+        </button>
+        <button id="btn-fit-view" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" title="全体を表示">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+          </svg>
+        </button>
+
+        <div class="w-px h-4 bg-slate-200 mx-0.5"></div>
+
+        <!-- 🖼️ 新規フレームボタン -->
+        <button id="btn-add-frame" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="キャンバスに新しい大枠フレームを追加">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="3" stroke-width="2" stroke-dasharray="4 2"></rect>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div id="canvas-container" class="flex-1 w-full h-full relative"></div>
+    </section>
+  </main>
+
+  <!-- 🌱 新しい題材を始めるモーダル -->
+  <div id="new-topic-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 m-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <span>🌱 新しい思考整理の題材を始める</span>
+        </h3>
+        <button id="close-topic-modal-btn" class="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold">×</button>
+      </div>
+
+      <p class="text-xs text-slate-600 leading-relaxed">
+        今日はどんなテーマについて考えますか？<br>
+        旅行、趣味、アプリの企画、日々の段取りなど自由に入力してください。
+      </p>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">思考テーマ（題材）</label>
+        <input id="new-topic-input" 
+               type="text" 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+               placeholder="例: 猫の写真アルバムアプリ、家族旅行の計画...">
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="cancel-topic-btn" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800">
+          キャンセル
+        </button>
+        <button id="start-topic-confirm-btn" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">
+          思考をスタートする
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚙️ 設定モーダル（Gemini APIキー登録） -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 m-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <span>⚙️ Google Gemini API 設定</span>
+        </h3>
+        <button id="close-settings-btn" class="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold">×</button>
+      </div>
+
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Google AI Studioで取得したAPIキーを入力すると、本物の最新Gemini AIと通信してアイデアを提案してくれます。<br>
+        <span class="text-slate-400 text-[11px]">※未入力の場合は、内蔵のシミュレーション思考エンジンで動作します。</span>
+      </p>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key</label>
+        <input id="gemini-api-key-input" 
+               type="password" 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+               placeholder="AIzaSy...">
+        <p class="text-[10px] text-slate-400 mt-1">※キーは外部サーバーへ送信されず、ミル造さんのブラウザ内にのみ安全に保管されます。</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">使用するAIモデル</label>
+        <select id="gemini-model-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+          <option value="gemini-3.6-flash" selected>⭐ Gemini 3.6 Flash (推奨・知識/速度/価格バランス抜群)</option>
+          <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash-Lite (最速・最安値・ブレストに最適)</option>
+          <option value="gemini-3.7-flash">🚀 Gemini 3.7 Flash (最新・日常対話/ステップ実行に最適化)</option>
+          <option value="gemini-3.8-flash">🔥 Gemini 3.8 Flash (現行最新世代)</option>
+          <option value="gemini-2.5-flash">🧠 Gemini 2.5 Flash (高知能ハイブリッド推論)</option>
+        </select>
+        <p class="text-[10px] text-slate-400 mt-1">※思考整理や簡単な壁打ちには、標準の「3.6 Flash」または爆速最安の「2.5 Flash-Lite」が最も効率的です。</p>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="save-settings-btn" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-medium transition-colors shadow-sm">
+          保存する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✨ 子ノード追加モーダル（洗練された中央ダイアログ） -->
+  <div id="add-node-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 m-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <span>🌿 新しいアイデア・タスクを追加</span>
+        </h3>
+        <button id="close-add-node-btn" class="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold">×</button>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        親ノード: <span class="font-bold text-blue-600" id="add-node-parent-title">選択中のノード</span>
+      </p>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">要約タイトル（15文字前後）</label>
+        <input id="add-node-title-input" 
+               type="text" 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+               placeholder="例: スマホ対応、通知機能など">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">第1タグ: 種別</label>
+          <select id="add-node-type-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Idea">💡 アイデア (Idea)</option>
+            <option value="Task">📋 タスク (Task)</option>
+            <option value="Problem">⚠️ 課題 (Problem)</option>
+            <option value="Goal">🎯 目標 (Goal)</option>
+            <option value="Inspiration">✨ ひらめき (Inspiration)</option>
+            <option value="Question">❓ 疑問 (Question)</option>
+            <option value="Fact">📌 事実 (Fact)</option>
+            <option value="Reference">📚 参考 (Reference)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">第2タグ: 役割・性質</label>
+          <select id="add-node-role-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="None">未設定 (通常)</option>
+            <option value="Mechanism">🔧 仕組み (Mechanism)</option>
+            <option value="Solution">💡 解決策 (Solution)</option>
+            <option value="Ingenuity">✨ 工夫点 (Ingenuity)</option>
+            <option value="Verification">🧪 検証タスク (Verification)</option>
+            <option value="Perspective">👁️ 視点 (Perspective)</option>
+            <option value="Approach">🎯 アプローチ (Approach)</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">詳細メモ (任意)</label>
+        <input id="add-node-content-input" 
+               type="text" 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+               placeholder="補足説明など">
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="cancel-add-node-btn" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800">
+          キャンセル
+        </button>
+        <button id="confirm-add-node-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">
+          ノードを追加する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📦 複数選択フローティング・グループ化アクションバー -->
+  <div id="floating-multiselect-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-2xl border border-slate-700/80 flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+    <span class="flex items-center gap-1.5 text-xs font-medium">
+      <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+      <span id="multiselect-count-badge" class="font-bold text-amber-400">0件</span> 選択中
+    </span>
+    <button id="btn-group-selected-nodes" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-full text-xs font-bold transition-all shadow-md flex items-center gap-1 hover:scale-105 cursor-pointer" title="選択ノードを同じグループに色分け">
+      <span>📦</span>
+      <span>グループ化</span>
+    </button>
+    <button id="btn-create-frame-for-nodes" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-xs font-bold transition-all shadow-md flex items-center gap-1 hover:scale-105 cursor-pointer" title="選択ノードを包み込む大枠フレームを作成">
+      <span>🖼️</span>
+      <span>フレームで囲む</span>
+    </button>
+    <button id="btn-clear-multiselect" class="text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded-full transition-colors cursor-pointer" title="選択を解除">
+      ✕ 解除
+    </button>
+  </div>
+
+  <!-- 📦 グループ作成・色選択モーダル（小さなダイアログ） -->
+  <div id="group-create-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl border border-slate-100 m-4 space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+          <span>📦</span>
+          <span>選択ノードをグループ化</span>
+        </h3>
+        <button id="close-group-modal-btn" class="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold">×</button>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        <span id="group-modal-count-text" class="font-bold text-blue-600">0</span> 個のノードを1つのグループにまとめます。
+      </p>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">📂 グループ名（Enterキーで即確定）</label>
+        <input id="group-modal-name-input" 
+               type="text" 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white"
+               placeholder="例: グループ1、UI改善など">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5">🎨 お好みのグループカラー</label>
+        <div id="group-modal-color-palette" class="flex items-center justify-between gap-1 px-1">
+          <button type="button" class="group-color-btn w-6 h-6 rounded-full bg-white border-2 border-slate-300 hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="default" title="標準（ホワイト）"></button>
+          <button type="button" class="group-color-btn w-6 h-6 rounded-full bg-blue-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer ring-2 ring-indigo-500 ring-offset-2 scale-110" data-color="blue" title="ブルー"></button>
+          <button type="button" class="group-color-btn w-6 h-6 rounded-full bg-emerald-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="green" title="グリーン"></button>
+          <button type="button" class="group-color-btn w-6 h-6 rounded-full bg-amber-400 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="amber" title="イエロー"></button>
+          <button type="button" class="group-color-btn w-6 h-6 rounded-full bg-purple-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="purple" title="パープル"></button>
+          <button type="button" class="group-color-btn w-6 h-6 rounded-full bg-rose-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="rose" title="ローズ"></button>
+          <button type="button" class="group-color-btn w-6 h-6 rounded-full bg-orange-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="orange" title="オレンジ"></button>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button id="cancel-group-modal-btn" type="button" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 cursor-pointer">
+          キャンセル
+        </button>
+        <button id="confirm-group-modal-btn" type="button" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer">
+          決定してグループ化 (Enter)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🖼️ フレーム新規作成モーダル -->
+  <div id="frame-create-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl border border-slate-100 m-4 space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+          <span>🖼️</span>
+          <span>大枠フレームを作成</span>
+        </h3>
+        <button id="close-frame-create-modal-btn" class="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold cursor-pointer">×</button>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        複数のノードやグループを大きく一まとめにする大枠フレームを作成します。
+      </p>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">🖼️ フレーム名</label>
+        <input id="frame-create-title-input" 
+               type="text" 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+               placeholder="例: プロジェクト企画、第1フェーズなど">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5">🎨 フレーム枠カラー</label>
+        <div id="frame-create-color-palette" class="flex items-center justify-between gap-1 px-1">
+          <button type="button" class="frame-create-color-btn w-6 h-6 rounded-full bg-blue-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer ring-2 ring-indigo-500 ring-offset-2 scale-110" data-color="blue" title="ブルー"></button>
+          <button type="button" class="frame-create-color-btn w-6 h-6 rounded-full bg-emerald-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="green" title="グリーン"></button>
+          <button type="button" class="frame-create-color-btn w-6 h-6 rounded-full bg-amber-400 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="amber" title="イエロー"></button>
+          <button type="button" class="frame-create-color-btn w-6 h-6 rounded-full bg-purple-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="purple" title="パープル"></button>
+          <button type="button" class="frame-create-color-btn w-6 h-6 rounded-full bg-rose-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="rose" title="ローズ"></button>
+          <button type="button" class="frame-create-color-btn w-6 h-6 rounded-full bg-orange-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="orange" title="オレンジ"></button>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button id="cancel-frame-create-modal-btn" type="button" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 cursor-pointer">
+          キャンセル
+        </button>
+        <button id="confirm-frame-create-modal-btn" type="button" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer">
+          フレーム作成 (Enter)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✏️ フレーム編集モーダル（名前・色・サイズ・フィット・削除） -->
+  <div id="frame-edit-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl border border-slate-100 m-4 space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+          <span>✏️</span>
+          <span>フレームの編集</span>
+        </h3>
+        <button id="close-frame-edit-modal-btn" class="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold cursor-pointer">×</button>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">🖼️ フレーム名</label>
+        <input id="frame-edit-title-input" 
+               type="text" 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5">🎨 フレーム枠カラー</label>
+        <div id="frame-edit-color-palette" class="flex items-center justify-between gap-1 px-1">
+          <button type="button" class="frame-edit-color-btn w-6 h-6 rounded-full bg-blue-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="blue" title="ブルー"></button>
+          <button type="button" class="frame-edit-color-btn w-6 h-6 rounded-full bg-emerald-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="green" title="グリーン"></button>
+          <button type="button" class="frame-edit-color-btn w-6 h-6 rounded-full bg-amber-400 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="amber" title="イエロー"></button>
+          <button type="button" class="frame-edit-color-btn w-6 h-6 rounded-full bg-purple-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="purple" title="パープル"></button>
+          <button type="button" class="frame-edit-color-btn w-6 h-6 rounded-full bg-rose-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="rose" title="ローズ"></button>
+          <button type="button" class="frame-edit-color-btn w-6 h-6 rounded-full bg-orange-500 border-2 border-white hover:scale-110 transition-all shadow-2xs relative cursor-pointer" data-color="orange" title="オレンジ"></button>
+        </div>
+      </div>
+
+      <!-- ワンクリックフィット機能 -->
+      <div class="pt-1">
+        <button id="btn-frame-fit-nodes" type="button" class="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>📐</span>
+          <span>枠内のノードに合わせて自動サイズ調整</span>
+        </button>
+      </div>
+
+      <div class="border-t border-slate-100 pt-3 flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <button id="btn-delete-frame-only" type="button" class="text-xs text-slate-500 hover:text-red-600 transition-colors font-medium flex items-center gap-1 cursor-pointer">
+            <span>🗑️</span>
+            <span>フレームのみ解除 (ノード残す)</span>
+          </button>
+          <button id="btn-delete-frame-with-nodes" type="button" class="text-xs text-red-500 hover:text-red-700 transition-colors font-medium flex items-center gap-1 cursor-pointer">
+            <span>💥</span>
+            <span>ノードごと削除</span>
+          </button>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button id="cancel-frame-edit-modal-btn" type="button" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 cursor-pointer">
+            キャンセル
+          </button>
+          <button id="save-frame-edit-modal-btn" type="button" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer">
+            変更を保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/state.js?v=15"></script>
+  <script src="./js/treeCanvas.js?v=15"></script>
+  <script src="./js/aiEngine.js?v=15"></script>
+  <script src="./js/pwa.js?v=15"></script>
+  <script src="./js/app.js?v=15"></script>
+</body>
+</html>
