@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="./css/style.css?v=27">
+  <link rel="stylesheet" href="./css/style.css?v=28">
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-screen overflow-hidden">
 
@@ -901,6 +901,17 @@
             <span>💡 採用（Adopted）ノードのみ出力</span>
           </label>
         </div>
+        <div id="export-mermaid-options" class="hidden items-center gap-3">
+          <span class="font-bold text-slate-700">形式:</span>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="export-mermaid-format" value="mindmap" checked class="text-amber-600">
+            <span>🧠 マインドマップ</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="export-mermaid-format" value="flowchart" class="text-amber-600">
+            <span>📊 フローチャート (互換性高)</span>
+          </label>
+        </div>
         <div id="export-png-options" class="hidden items-center gap-3">
           <span class="font-bold text-slate-700">背景:</span>
           <label class="flex items-center gap-1 cursor-pointer">
@@ -979,10 +990,10 @@
     </div>
   </div>
 
-  <script src="./js/state.js?v=27"></script>
-  <script src="./js/treeCanvas.js?v=27"></script>
-  <script src="./js/aiEngine.js?v=27"></script>
-  <script src="./js/pwa.js?v=27"></script>
-  <script src="./js/app.js?v=27"></script>
+  <script src="./js/state.js?v=28"></script>
+  <script src="./js/treeCanvas.js?v=28"></script>
+  <script src="./js/aiEngine.js?v=28"></script>
+  <script src="./js/pwa.js?v=28"></script>
+  <script src="./js/app.js?v=28"></script>
 </body>
 </html>

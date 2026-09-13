@@ -1810,6 +1810,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportImagePreviewWrapper = document.getElementById('export-image-preview-wrapper');
   const exportImagePreview = document.getElementById('export-image-preview');
   const exportPngThemeRadios = document.querySelectorAll('input[name="export-png-theme"]');
+  const exportMermaidOptions = document.getElementById('export-mermaid-options');
+  const exportMermaidFormatRadios = document.querySelectorAll('input[name="export-mermaid-format"]');
   let currentExportType = 'aicontext';
   let currentPngDataUrl = null;
   let currentPngBlob = null;
@@ -1857,17 +1859,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // 📝 テキスト系エクスポート (AI Context / Mermaid / Notion / JSON)
     if (exportPreviewTextarea) exportPreviewTextarea.classList.remove('hidden');
     if (exportImagePreviewWrapper) exportImagePreviewWrapper.classList.add('hidden');
-    if (exportTextOptions) exportTextOptions.classList.remove('hidden');
     if (exportPngOptions) {
       exportPngOptions.classList.add('hidden');
       exportPngOptions.classList.remove('flex');
+    }
+
+    if (currentExportType === 'mermaid') {
+      if (exportTextOptions) exportTextOptions.classList.add('hidden');
+      if (exportMermaidOptions) {
+        exportMermaidOptions.classList.remove('hidden');
+        exportMermaidOptions.classList.add('flex');
+      }
+    } else {
+      if (exportTextOptions) exportTextOptions.classList.remove('hidden');
+      if (exportMermaidOptions) {
+        exportMermaidOptions.classList.add('hidden');
+        exportMermaidOptions.classList.remove('flex');
+      }
     }
 
     let output = '';
     if (currentExportType === 'aicontext') {
       output = state.exportAsAIContext({ includeDetails, adoptedOnly });
     } else if (currentExportType === 'mermaid') {
-      output = state.exportAsMermaid({ adoptedOnly });
+      let chosenFormat = 'mindmap';
+      if (exportMermaidFormatRadios) {
+        exportMermaidFormatRadios.forEach(r => {
+          if (r.checked) chosenFormat = r.value;
+        });
+      }
+      output = state.exportAsMermaid({ adoptedOnly, format: chosenFormat });
     } else if (currentExportType === 'notion') {
       output = state.exportAsNotionMarkdown({ includeDetails, adoptedOnly });
     } else if (currentExportType === 'json') {
@@ -1958,6 +1979,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (exportPngThemeRadios) {
     exportPngThemeRadios.forEach(radio => {
+      radio.addEventListener('change', updateExportPreview);
+    });
+  }
+  if (exportMermaidFormatRadios) {
+    exportMermaidFormatRadios.forEach(radio => {
       radio.addEventListener('change', updateExportPreview);
     });
   }

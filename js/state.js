@@ -1408,16 +1408,45 @@ class MindMapState {
   // ===========================================================================
   // 📤 エクスポート: Mermaid (Obsidian / Notion 図解)
   // ===========================================================================
-  // 📤 エクスポート: Mermaid (Obsidian / Notion 図解)
-  // ===========================================================================
-  exportAsMermaid(options = { adoptedOnly: false }) {
+  exportAsMermaid(options = { adoptedOnly: false, format: 'mindmap' }) {
     const rootNode = Object.values(this.data.nodes).find(n => !n.parentId) || Object.values(this.data.nodes)[0];
     if (!rootNode) return '';
 
-    // 💡 Notionの/mermaidブロック等にそのまま貼れるよう純粋な定義を出力
+    // 🌟 フローチャート形式 (flowchart LR) - あらゆる環境で100%確実に表示される図解
+    if (options.format === 'flowchart') {
+      let fc = 'flowchart LR\n';
+      const rootTitle = (rootNode.title || 'マインドマップ').replace(/["\[\]]/g, '').trim();
+      fc += `  root["${rootTitle}"]\n`;
+
+      const traverse = (nodeId) => {
+        const node = this.data.nodes[nodeId];
+        if (!node) return;
+
+        if (options.adoptedOnly && node.status !== 'Adopted' && node.status !== 'Priority' && node.id !== rootNode.id) {
+          return;
+        }
+
+        const safeId = 'n_' + nodeId.replace(/[^a-zA-Z0-9_]/g, '_');
+        const safeTitle = (node.title || 'ノード').replace(/["\[\]]/g, '').trim();
+        const parentSafeId = (node.parentId === rootNode.id) ? 'root' : ('n_' + node.parentId.replace(/[^a-zA-Z0-9_]/g, '_'));
+
+        fc += `  ${parentSafeId} --> ${safeId}["${safeTitle}"]\n`;
+
+        const children = Object.values(this.data.nodes).filter(n => n.parentId === nodeId);
+        children.forEach(child => traverse(child.id));
+      };
+
+      const rootChildren = Object.values(this.data.nodes).filter(n => n.parentId === rootNode.id);
+      rootChildren.forEach(child => traverse(child.id));
+      return fc;
+    }
+
+    // 🌟 マインドマップ形式 (mindmap) - Notionの/mermaidブロックにそのまま貼れる正式構文
+    // ⚠️ 重要: 各行を ["..."] で囲むとMermaidのlexerが誤作動（null.reエラー）を起こすため、
+    // 括弧類（() [] {} ""）を除去した純粋なインデントテキスト行として出力します。
     let out = 'mindmap\n';
-    const rootTitle = (rootNode.title || 'マインドマップ').replace(/"/g, "'").trim();
-    out += `  root(("${rootTitle}"))\n`;
+    const cleanRootTitle = (rootNode.title || 'マインドマップ').replace(/[()\[\]{}"']/g, '').trim();
+    out += `  root((${cleanRootTitle}))\n`;
 
     const traverse = (nodeId, depth) => {
       const node = this.data.nodes[nodeId];
@@ -1428,10 +1457,9 @@ class MindMapState {
       }
 
       const indent = '  '.repeat(depth + 2);
-      // 💡 「・」や記号による構文エラー（Lexical error）を防止するため ["..."] で安全に囲む
-      const safeTitle = (node.title || 'ノード').replace(/"/g, "'").trim();
+      const safeTitle = (node.title || 'ノード').replace(/[()\[\]{}"']/g, '').trim();
       if (safeTitle) {
-        out += `${indent}["${safeTitle}"]\n`;
+        out += `${indent}${safeTitle}\n`;
       }
 
       const children = Object.values(this.data.nodes).filter(n => n.parentId === nodeId);
