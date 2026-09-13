@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="./css/style.css?v=20">
+  <link rel="stylesheet" href="./css/style.css?v=21">
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-screen overflow-hidden flex flex-col">
 
@@ -137,11 +137,40 @@
           <span class="thinking-status-text text-[10px] text-amber-700 font-medium tracking-wide">アイデアを深掘り中…</span>
         </div>
 
+        <!-- 📷 チャット欄の画像添付ツールバー（ミル造さんご要望: チャット欄直下に目立つボタンを常時配置！） -->
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <button id="chat-attach-image-btn" 
+                    type="button" 
+                    class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer hover:scale-105 active:scale-95"
+                    title="選択中のノードに参照画像を添付（VGAサイズ自動圧縮）">
+              <span>📷</span>
+              <span>画像を追加</span>
+            </button>
+            <!-- 添付中画像プレビューバッジ -->
+            <div id="chat-attached-image-badge" class="hidden flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-900 shadow-2xs">
+              <img id="chat-attached-image-thumb" src="" alt="添付画像" class="w-5 h-5 object-cover rounded cursor-pointer hover:opacity-80" title="クリックで拡大プレビュー">
+              <span class="truncate max-w-[85px] text-[10px] font-semibold">画像あり</span>
+              <button id="chat-detach-image-btn" type="button" class="text-rose-500 hover:text-rose-700 font-bold px-1 rounded hover:bg-rose-100 transition-colors cursor-pointer" title="画像を削除">×</button>
+            </div>
+          </div>
+          <span class="text-[10px] text-slate-400">D&D / Cmd+V貼付可</span>
+        </div>
+
         <div class="relative flex items-center">
           <textarea id="prompt-input" 
                     rows="2"
-                    class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-3 pr-10 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white resize-none"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-3 pr-16 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white resize-none"
                     placeholder="選択中の題材について質問・相談・アイデア入力..."></textarea>
+          <!-- 📷 入力枠内のクイック画像添付ボタン -->
+          <button id="chat-clip-image-btn" 
+                  type="button"
+                  class="absolute right-9 bottom-2 p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                  title="参照画像を選択して添付">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </button>
           <button id="send-prompt-btn" 
                   class="absolute right-2 bottom-2 p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors shadow-2xs"
                   title="送信して思考を展開">
@@ -901,10 +930,10 @@
     </div>
   </div>
 
-  <script src="./js/state.js?v=20"></script>
-  <script src="./js/treeCanvas.js?v=20"></script>
-  <script src="./js/aiEngine.js?v=20"></script>
-  <script src="./js/pwa.js?v=20"></script>
-  <script src="./js/app.js?v=20"></script>
+  <script src="./js/state.js?v=21"></script>
+  <script src="./js/treeCanvas.js?v=21"></script>
+  <script src="./js/aiEngine.js?v=21"></script>
+  <script src="./js/pwa.js?v=21"></script>
+  <script src="./js/app.js?v=21"></script>
 </body>
 </html>

@@ -715,6 +715,25 @@ class MindMapState {
     this.notify('node_tags_updated', { nodeId, tags: node.tags });
   }
 
+  /**
+   * ユーザー作成のカスタムタグを削除（全ノードからも除去）
+   */
+  deleteCustomTag(tagId) {
+    if (!this.data.customTags) return;
+    this.recordHistory();
+    this.data.customTags = this.data.customTags.filter(t => t.id !== tagId);
+
+    // 全ノードからそのタグIDを除去
+    Object.values(this.data.nodes).forEach(n => {
+      if (n.tags && Array.isArray(n.tags)) {
+        n.tags = n.tags.filter(id => id !== tagId);
+      }
+    });
+
+    this.saveState();
+    this.notify('custom_tag_deleted', { tagId });
+  }
+
   selectNode(nodeId) {
     if (this.data.nodes[nodeId] && this.data.selectedNodeId !== nodeId) {
       this.data.selectedNodeId = nodeId;

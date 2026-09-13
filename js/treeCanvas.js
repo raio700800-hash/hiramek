@@ -749,6 +749,24 @@ class MindMapTreeCanvas {
         </span>
       ` : '';
 
+      // 🏷️ ユーザー独自カスタムタグ（ミル造さん作成タグ）のピル生成
+      const allCustomTags = this.state.data.customTags || [];
+      const customTagMap = {};
+      allCustomTags.forEach(t => { customTagMap[t.id] = t; });
+
+      const nodeTagsList = node.tags || [];
+      const customTagsHtml = nodeTagsList.map(tagId => {
+        const tag = customTagMap[tagId];
+        if (!tag) return '';
+        const safeTagName = escapeHtml(tag.name);
+        return `
+          <span class="custom-node-tag inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-amber-100 text-amber-900 border border-amber-300 shrink-0 shadow-2xs" title="タグ: ${safeTagName}">
+            <span>🏷️</span>
+            <span class="truncate max-w-[65px]">${safeTagName}</span>
+          </span>
+        `;
+      }).join('');
+
       // タイトルから不要な接頭辞（「視点: 」「答え: 」「解決策: 」等）を自動クリーンアップして純粋な要約に！
       let cleanTitle = (typeof cleanNodeTitle === 'function')
         ? cleanNodeTitle(node.title)
@@ -774,7 +792,7 @@ class MindMapTreeCanvas {
       nodesHtml += `
         <div id="node-elm-${node.id}" 
              class="mind-node absolute ${theme.bg} rounded-xl px-3 py-2 border shadow-2xs ${visualBorderClass} flex flex-col justify-center select-none group transition-colors duration-200"
-             style="width: ${this.nodeWidth}px; min-height: 68px; left: ${node.x}px; top: ${node.y}px;"
+             style="width: ${this.nodeWidth}px; min-height: 72px; left: ${node.x}px; top: ${node.y}px;"
              data-id="${node.id}"
              data-color="${nodeColor}">
           
@@ -804,10 +822,11 @@ class MindMapTreeCanvas {
             </svg>
           </button>
 
-          <!-- 🏷️ 2タグ表示システム ＋ 📂 グループバッジ -->
-          <div class="flex items-center gap-1.5 overflow-hidden flex-nowrap mb-1">
+          <!-- 🏷️ 2タグ表示システム ＋ ユーザー作成カスタムタグ ＋ 📂 グループバッジ -->
+          <div class="flex items-center gap-1.5 overflow-hidden flex-wrap mb-1">
             ${firstTagHtml}
             ${secondTagHtml}
+            ${customTagsHtml}
             ${groupBadgeHtml}
           </div>
 

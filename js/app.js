@@ -122,6 +122,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxImage = document.getElementById('lightbox-image');
   const lightboxCaption = document.getElementById('lightbox-caption');
 
+  // 📷 チャット欄の画像添付要素（ミル造さんご要望: 入力欄の真横・直上に設置！）
+  const chatAttachImageBtn = document.getElementById('chat-attach-image-btn');
+  const chatClipImageBtn = document.getElementById('chat-clip-image-btn');
+  const chatAttachedImageBadge = document.getElementById('chat-attached-image-badge');
+  const chatAttachedImageThumb = document.getElementById('chat-attached-image-thumb');
+  const chatDetachImageBtn = document.getElementById('chat-detach-image-btn');
+
   // ノード色分け & グループ分け要素
   const editorNodeGroup = document.getElementById('editor-node-group');
   const nodeColorPalette = document.getElementById('node-color-palette');
@@ -741,9 +748,10 @@ document.addEventListener('DOMContentLoaded', () => {
       highlightLinkedChatMessages(payload.nodeId);
     }
 
-    if (eventType === 'custom_tag_created' || eventType === 'node_tags_updated') {
+    if (eventType === 'custom_tag_created' || eventType === 'node_tags_updated' || eventType === 'custom_tag_deleted') {
       const selNode = data.nodes[data.selectedNodeId];
       renderCustomTags(selNode, data);
+      canvas.render(); // 🌟 ノード上のタグバッジを即座に再描画！
     }
 
     if (eventType === 'theme_changed' && payload?.theme) {
@@ -784,6 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
       if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
+      if (chatAttachedImageBadge) chatAttachedImageBadge.classList.add('hidden');
       renderCustomTags(null, data);
       return;
     }
@@ -810,14 +819,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (editorDeleteBtn) editorDeleteBtn.disabled = !node.parentId;
     if (editorAddChildBtn) editorAddChildBtn.disabled = false;
 
-    // 📷 参照画像のプレビュー同期（ミル造さんご要望）
+    // 📷 参照画像のプレビュー同期（エディタ ＆ チャット入力欄バッジ）
     if (node.image) {
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.remove('hidden');
       if (nodeImagePreviewImg) nodeImagePreviewImg.src = node.image;
       if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
+
+      if (chatAttachedImageBadge) {
+        chatAttachedImageBadge.classList.remove('hidden');
+        if (chatAttachedImageThumb) chatAttachedImageThumb.src = node.image;
+      }
     } else {
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
       if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
+
+      if (chatAttachedImageBadge) {
+        chatAttachedImageBadge.classList.add('hidden');
+        if (chatAttachedImageThumb) chatAttachedImageThumb.src = '';
+      }
     }
 
     // 🌱 ノード誕生きっかけバッジの即時反映（スクロール不要！）
@@ -856,14 +875,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tags.forEach(tag => {
       const isAttached = nodeTags.includes(tag.id);
+      const tagWrapper = document.createElement('div');
+      tagWrapper.className = `inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-all shadow-2xs ${
+        isAttached 
+          ? 'bg-amber-500 text-white border-amber-600 scale-105' 
+          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+      }`;
+
+      // タグ付け外しボタン
       const tagBtn = document.createElement('button');
       tagBtn.type = 'button';
-      tagBtn.className = `px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-150 border cursor-pointer ${
-        isAttached 
-          ? 'bg-amber-500 text-white border-amber-600 shadow-2xs scale-105' 
-          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
-      }`;
-      tagBtn.innerHTML = `${isAttached ? '✓ ' : ''}${tag.name}`;
+      tagBtn.className = 'cursor-pointer flex items-center gap-0.5 focus:outline-none';
+      tagBtn.innerHTML = `${isAttached ? '✓ ' : ''}🏷️ ${escapeHtml(tag.name)}`;
       tagBtn.title = isAttached ? 'クリックでノードから外す' : 'クリックでこのノードに付与';
 
       tagBtn.addEventListener('click', () => {
@@ -873,8 +896,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         state.toggleNodeTag(node.id, tag.id);
       });
+      tagWrapper.appendChild(tagBtn);
 
-      customTagsContainer.appendChild(tagBtn);
+      // タグ削除（×）ボタン
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = `ml-0.5 text-[11px] font-bold cursor-pointer focus:outline-none transition-colors ${
+        isAttached ? 'text-amber-100 hover:text-white' : 'text-slate-400 hover:text-rose-500'
+      }`;
+      delBtn.innerHTML = '×';
+      delBtn.title = `タグ「${tag.name}」を削除`;
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm(`タグ「${tag.name}」を完全に削除しますか？\n（すべてのノードからも自動的に外れます）`)) {
+          state.deleteCustomTag(tag.id);
+        }
+      });
+      tagWrapper.appendChild(delBtn);
+
+      customTagsContainer.appendChild(tagWrapper);
     });
   }
 
@@ -883,8 +923,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const tagName = prompt('新しいタグの名前を入力してください（例: 最優先、要調査、ミル造案など）:');
       if (tagName && tagName.trim()) {
         const newTag = state.createCustomTag(tagName.trim());
-        if (state.data.selectedNodeId && newTag) {
-          state.toggleNodeTag(state.data.selectedNodeId, newTag.id);
+        const selId = state.data.selectedNodeId;
+        if (selId && newTag) {
+          state.toggleNodeTag(selId, newTag.id);
         }
       }
     });
@@ -1157,23 +1198,72 @@ document.addEventListener('DOMContentLoaded', () => {
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.remove('hidden');
       if (nodeImagePreviewImg) nodeImagePreviewImg.src = compressedDataUrl;
       if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
+
+      // 4. チャット欄の画像バッジ更新（ミル造さんご要望: 入力欄の真横・直上にも即時反映！）
+      if (chatAttachedImageBadge) {
+        chatAttachedImageBadge.classList.remove('hidden');
+        if (chatAttachedImageThumb) chatAttachedImageThumb.src = compressedDataUrl;
+      }
+    });
+  }
+
+  // 📷 画像選択ダイアログの起動共通処理（チャット欄・エディタ双方から呼び出し）
+  const triggerImageUpload = () => {
+    let selId = state.data.selectedNodeId;
+    if (!selId) {
+      const allNodeIds = Object.keys(state.data.nodes);
+      if (allNodeIds.length > 0) {
+        selId = allNodeIds[0];
+        state.selectNode(selId);
+        canvas.focusNode(selId);
+      } else {
+        alert('画像を添付するノードを選択してください。');
+        return;
+      }
+    }
+    if (nodeImageFileInput) {
+      nodeImageFileInput.value = '';
+      nodeImageFileInput.click();
+    }
+  };
+
+  // 🌟 チャット欄の画像添付ボタン（直上バー ＆ 入力枠内の両方に対応！）
+  if (chatAttachImageBtn) chatAttachImageBtn.addEventListener('click', triggerImageUpload);
+  if (chatClipImageBtn) chatClipImageBtn.addEventListener('click', triggerImageUpload);
+
+  // 🌟 チャット欄バッジの削除（×）ボタン
+  if (chatDetachImageBtn) {
+    chatDetachImageBtn.addEventListener('click', () => {
+      const selId = state.data.selectedNodeId;
+      if (!selId) return;
+      if (confirm('添付されている参照画像を削除しますか？')) {
+        state.updateNode(selId, { image: null });
+        if (chatAttachedImageBadge) chatAttachedImageBadge.classList.add('hidden');
+        if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
+        if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
+      }
+    });
+  }
+
+  // 🌟 チャット欄バッジのサムネイルクリックで拡大プレビュー
+  if (chatAttachedImageThumb) {
+    chatAttachedImageThumb.addEventListener('click', () => {
+      const selId = state.data.selectedNodeId;
+      const node = selId ? state.data.nodes[selId] : null;
+      if (node && node.image) {
+        openLightbox(node.image, `「${node.title || 'ノード'}」の参照画像`);
+      }
     });
   }
 
   // 1. アップロード枠クリックでファイル選択
   if (nodeImageUploadArea && nodeImageFileInput) {
-    nodeImageUploadArea.addEventListener('click', () => {
-      nodeImageFileInput.value = '';
-      nodeImageFileInput.click();
-    });
+    nodeImageUploadArea.addEventListener('click', triggerImageUpload);
   }
 
   // 2. 差し替えボタンクリック
   if (btnReplaceNodeImage && nodeImageFileInput) {
-    btnReplaceNodeImage.addEventListener('click', () => {
-      nodeImageFileInput.value = '';
-      nodeImageFileInput.click();
-    });
+    btnReplaceNodeImage.addEventListener('click', triggerImageUpload);
   }
 
   // 3. ファイルinput変更イベント
@@ -1193,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!selId) return;
       if (confirm('添付されている参照画像を削除しますか？')) {
         state.updateNode(selId, { image: null });
+        if (chatAttachedImageBadge) chatAttachedImageBadge.classList.add('hidden');
         if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
         if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
       }
