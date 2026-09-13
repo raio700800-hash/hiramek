@@ -16,21 +16,41 @@ function cleanNodeTitle(rawTitle) {
   if (!rawTitle) return '';
   let title = String(rawTitle).trim();
 
+  // 1. <br>, <br/>, <br /> などのHTML改行タグをスペースに変換
+  title = title.replace(/<br\s*\/?>/gi, ' ');
+
+  // 2. その他のHTMLタグ（<b>, <span>, <div>, etc.）を除去
+  title = title.replace(/<\/?[a-z][a-z0-9]*[^<>]*>/gi, '');
+
+  // 3. HTMLエンティティのデコード
+  title = title.replace(/&nbsp;/gi, ' ')
+               .replace(/&amp;/gi, '&')
+               .replace(/&lt;/gi, '<')
+               .replace(/&gt;/gi, '>')
+               .replace(/&quot;/gi, '"')
+               .replace(/&#039;/gi, "'");
+
+  // 4. 改行文字やタブをスペースに変換
+  title = title.replace(/[\r\n\t]+/g, ' ');
+
   let prev = '';
   while (prev !== title) {
     prev = title;
 
-    // 1. 先頭の絵文字や装飾記号を除去
+    // 5. 先頭の絵文字や装飾記号を除去
     title = title.replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1FA00}-\u{1FAFF}💡📋⚠️🎯✨👁️🔧📌❓📚⭕🚀🌟🌱🌿🧪]\s*/u, '');
 
-    // 2. 接頭辞ワード + コロン（半角/全角）を除去
-    title = title.replace(/^(視点|解決策|工夫点|検証タスク|検証|アクション|アプローチ|仕組み|答え|回答|必須|推奨|懸念|総括|原点|動機|Step\s*\d+|初心者|実践者|整理派|機能|要件)\s*[:：]\s*/i, '');
+    // 6. 接頭辞ワード + コロン（半角/全角）を除去
+    title = title.replace(/^(視点|解決策|工夫点|検証タスク|検証|アクション|アプローチ|仕組み|答え|回答|必須|推奨|懸念|総括|原点|動機|Step\s*\d+|初心者|実践者|整理派|機能|要件|重要|ポイント|注意)\s*[:：]\s*/i, '');
 
-    // 3. カッコ囲みの接頭辞を除去
-    title = title.replace(/^(\[|【|（|\()(視点|解決策|工夫点|検証タスク|検証|アクション|アプローチ|仕組み|答え|回答|必須|推奨|懸念|総括|原点|動機|初心者|実践者|整理派|機能|要件)(\]|】|）|\))\s*/i, '');
+    // 7. カッコ囲みの接頭辞を除去
+    title = title.replace(/^(\[|【|（|\()(視点|解決策|工夫点|検証タスク|検証|アクション|アプローチ|仕組み|答え|回答|必須|推奨|懸念|総括|原点|動機|初心者|実践者|整理派|機能|要件|重要|ポイント|注意)(\]|】|）|\))\s*/i, '');
 
     title = title.trim();
   }
+
+  // 8. 連続する空白を1つの半角スペースに整理
+  title = title.replace(/\s+/g, ' ').trim();
 
   return title || rawTitle;
 }
@@ -781,6 +801,18 @@ class MindMapState {
         }
         if (n.group === undefined) {
           n.group = '';
+          stateChanged = true;
+        }
+        if (n.originPrompt && (n.originPrompt.includes('<br') || n.originPrompt.includes('&lt;br'))) {
+          n.originPrompt = n.originPrompt.replace(/(&lt;|<)br\s*\/?(&gt;|>)/gi, ' ');
+          stateChanged = true;
+        }
+      });
+    }
+    if (this.data && this.data.messages) {
+      this.data.messages.forEach(m => {
+        if (m.text && (m.text.includes('<br') || m.text.includes('&lt;br'))) {
+          m.text = m.text.replace(/(&lt;|<)br\s*\/?(&gt;|>)/gi, ' ');
           stateChanged = true;
         }
       });
