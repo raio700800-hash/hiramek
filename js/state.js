@@ -1408,12 +1408,16 @@ class MindMapState {
   // ===========================================================================
   // 📤 エクスポート: Mermaid (Obsidian / Notion 図解)
   // ===========================================================================
+  // 📤 エクスポート: Mermaid (Obsidian / Notion 図解)
+  // ===========================================================================
   exportAsMermaid(options = { adoptedOnly: false }) {
     const rootNode = Object.values(this.data.nodes).find(n => !n.parentId) || Object.values(this.data.nodes)[0];
     if (!rootNode) return '';
 
-    let out = '```mermaid\nmindmap\n';
-    out += `  root((${rootNode.title.replace(/[()\[\]{}"']/g, '')}))\n`;
+    // 💡 Notionの/mermaidブロック等にそのまま貼れるよう純粋な定義を出力
+    let out = 'mindmap\n';
+    const rootTitle = (rootNode.title || 'マインドマップ').replace(/"/g, "'").trim();
+    out += `  root(("${rootTitle}"))\n`;
 
     const traverse = (nodeId, depth) => {
       const node = this.data.nodes[nodeId];
@@ -1424,9 +1428,10 @@ class MindMapState {
       }
 
       const indent = '  '.repeat(depth + 2);
-      const safeTitle = node.title.replace(/[()\[\]{}"']/g, '').trim();
+      // 💡 「・」や記号による構文エラー（Lexical error）を防止するため ["..."] で安全に囲む
+      const safeTitle = (node.title || 'ノード').replace(/"/g, "'").trim();
       if (safeTitle) {
-        out += `${indent}${safeTitle}\n`;
+        out += `${indent}["${safeTitle}"]\n`;
       }
 
       const children = Object.values(this.data.nodes).filter(n => n.parentId === nodeId);
@@ -1435,7 +1440,6 @@ class MindMapState {
 
     const rootChildren = Object.values(this.data.nodes).filter(n => n.parentId === rootNode.id);
     rootChildren.forEach(child => traverse(child.id, 0));
-    out += '```\n';
     return out;
   }
 
