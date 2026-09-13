@@ -296,39 +296,58 @@ body.theme-chalkboard section > div.absolute.top-4.right-4 button:hover {
   color: #ffffff !important;
 }
 
-/* 接続線（チョークライン） */
+/* 接続線（チョークライン：くっきりと美しいミントグリーン＆チョークイエロー） */
 body.theme-chalkboard .tree-edge {
-  stroke: #416f55 !important;
+  stroke: #6ee7b7 !important;
+  stroke-width: 2.5px !important;
+  opacity: 0.85;
 }
 
 body.theme-chalkboard .tree-edge.highlighted {
-  stroke: #f6e05e !important; /* チョークイエロー */
+  stroke: #fde047 !important; /* 鮮明なチョークイエロー */
+  stroke-width: 3.5px !important;
+  opacity: 1;
 }
 
-/* ノードカード（黒板上のメモ調） */
+/* ノードカード（黒板上のメモ調：輪郭をくっきり際立たせる） */
 body.theme-chalkboard .mind-node {
-  background-color: #163625 !important;
-  border-color: #2b5c40 !important;
+  background-color: #143825 !important;
+  border-color: #3b7a55 !important;
+  border-width: 1.5px !important;
   color: #ecf5ef !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
 }
 
 body.theme-chalkboard .mind-node .text-slate-800 {
-  color: #f7faf8 !important;
+  color: #ffffff !important;
+  font-weight: 600;
 }
 
 body.theme-chalkboard .mind-node .text-slate-500,
 body.theme-chalkboard .mind-node .text-slate-600 {
-  color: #a3c4b0 !important;
+  color: #bbf7d0 !important;
 }
 
 body.theme-chalkboard .mind-node:hover {
-  border-color: #48bb78 !important;
+  border-color: #6ee7b7 !important;
+  transform: translateY(-2px);
 }
 
 body.theme-chalkboard .mind-node.selected {
-  outline-color: #68d391 !important;
-  box-shadow: 0 0 0 4px rgba(104, 211, 145, 0.25), 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  outline-color: #fde047 !important;
+  outline-width: 2.5px !important;
+  box-shadow: 0 0 0 5px rgba(253, 224, 71, 0.3), 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* 🖼️ 黒板モードでのフレーム枠（チョーク調の高コントラスト枠線） */
+body.theme-chalkboard .canvas-frame-box {
+  border-width: 2.5px !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+body.theme-chalkboard .canvas-frame-box .frame-header {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+  font-weight: 700 !important;
 }
 
 /* チャット吹き出し */

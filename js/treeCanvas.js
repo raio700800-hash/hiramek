@@ -1107,41 +1107,41 @@ class MindMapTreeCanvas {
 
     const isChalkboard = (this.state.data.settings?.theme === 'chalkboard');
 
-    // フレーム配色定義（ホワイトボード用と黒板用の両方に対応）
+    // フレーム配色定義（ホワイトボード用と黒板用の両方に対応：黒板モードはチョーク調の高コントラスト）
     const frameColorMap = {
       default: {
-        bg: isChalkboard ? 'bg-emerald-950/40 border-emerald-700/60' : 'bg-slate-100/40 border-slate-300/80',
-        headerBg: isChalkboard ? 'bg-emerald-900 border-emerald-700 text-emerald-100' : 'bg-white border-slate-200 text-slate-700',
+        bg: isChalkboard ? 'bg-emerald-900/20 border-emerald-400/90' : 'bg-slate-100/40 border-slate-300/80',
+        headerBg: isChalkboard ? 'bg-slate-900/95 border-emerald-400 text-emerald-300' : 'bg-white border-slate-200 text-slate-700',
         dot: 'bg-slate-400'
       },
       blue: {
-        bg: isChalkboard ? 'bg-sky-950/40 border-sky-600/70' : 'bg-blue-50/40 border-blue-300/80',
-        headerBg: isChalkboard ? 'bg-sky-900 border-sky-600 text-sky-100' : 'bg-white border-blue-200 text-blue-800',
+        bg: isChalkboard ? 'bg-sky-900/20 border-sky-400/90' : 'bg-blue-50/40 border-blue-300/80',
+        headerBg: isChalkboard ? 'bg-slate-900/95 border-sky-400 text-sky-300' : 'bg-white border-blue-200 text-blue-800',
         dot: 'bg-blue-500'
       },
       green: {
-        bg: isChalkboard ? 'bg-emerald-950/50 border-emerald-500/70' : 'bg-emerald-50/40 border-emerald-300/80',
-        headerBg: isChalkboard ? 'bg-emerald-900 border-emerald-600 text-emerald-100' : 'bg-white border-emerald-200 text-emerald-800',
+        bg: isChalkboard ? 'bg-emerald-900/25 border-emerald-400/90' : 'bg-emerald-50/40 border-emerald-300/80',
+        headerBg: isChalkboard ? 'bg-slate-900/95 border-emerald-400 text-emerald-300' : 'bg-white border-emerald-200 text-emerald-800',
         dot: 'bg-emerald-500'
       },
       amber: {
-        bg: isChalkboard ? 'bg-amber-950/40 border-amber-600/70' : 'bg-amber-50/40 border-amber-300/80',
-        headerBg: isChalkboard ? 'bg-amber-900 border-amber-600 text-amber-100' : 'bg-white border-amber-200 text-amber-800',
+        bg: isChalkboard ? 'bg-amber-900/20 border-amber-300/90' : 'bg-amber-50/40 border-amber-300/80',
+        headerBg: isChalkboard ? 'bg-slate-900/95 border-amber-300 text-amber-300' : 'bg-white border-amber-200 text-amber-800',
         dot: 'bg-amber-500'
       },
       purple: {
-        bg: isChalkboard ? 'bg-purple-950/40 border-purple-600/70' : 'bg-purple-50/40 border-purple-300/80',
-        headerBg: isChalkboard ? 'bg-purple-900 border-purple-600 text-purple-100' : 'bg-white border-purple-200 text-purple-800',
+        bg: isChalkboard ? 'bg-purple-900/20 border-purple-400/90' : 'bg-purple-50/40 border-purple-300/80',
+        headerBg: isChalkboard ? 'bg-slate-900/95 border-purple-400 text-purple-300' : 'bg-white border-purple-200 text-purple-800',
         dot: 'bg-purple-500'
       },
       rose: {
-        bg: isChalkboard ? 'bg-rose-950/40 border-rose-600/70' : 'bg-rose-50/40 border-rose-300/80',
-        headerBg: isChalkboard ? 'bg-rose-900 border-rose-600 text-rose-100' : 'bg-white border-rose-200 text-rose-800',
+        bg: isChalkboard ? 'bg-rose-900/20 border-rose-400/90' : 'bg-rose-50/40 border-rose-300/80',
+        headerBg: isChalkboard ? 'bg-slate-900/95 border-rose-400 text-rose-300' : 'bg-white border-rose-200 text-rose-800',
         dot: 'bg-rose-500'
       },
       orange: {
-        bg: isChalkboard ? 'bg-orange-950/40 border-orange-600/70' : 'bg-orange-50/40 border-orange-300/80',
-        headerBg: isChalkboard ? 'bg-orange-900 border-orange-600 text-orange-100' : 'bg-white border-orange-200 text-orange-800',
+        bg: isChalkboard ? 'bg-orange-900/20 border-orange-300/90' : 'bg-orange-50/40 border-orange-300/80',
+        headerBg: isChalkboard ? 'bg-slate-900/95 border-orange-300 text-orange-300' : 'bg-white border-orange-200 text-orange-800',
         dot: 'bg-orange-500'
       }
     };

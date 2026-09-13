@@ -66,8 +66,9 @@ class AIEngine {
 2. ノードの「title」は、「解決策: 」「工夫点: 」「答え: 」「視点: 」「検証タスク: 」「アプローチ: 」「【視点】」といった不要な接頭辞や絵文字を絶対に含めず、【純粋な要約タイトル（10〜16文字程度）】にしてください。
 3. nodeType は "Idea", "Task", "Problem", "Fact", "Question", "Goal", "Inspiration", "Reference" の中から最も相応しいものを割り当ててください。
 4. roleTag（役割タグ）として "Mechanism" (仕組み), "Solution" (解決策), "Ingenuity" (工夫点), "Verification" (検証タスク), "Perspective" (視点), "Approach" (アプローチ), "None" の中から適切なものを割り当ててください。
-5. 【最重要: 質問への直接的な具体解ノード化】
-   - ユーザーの入力が「どんな仕組みがありますか？」「どんなアプリとの連携が強力ですか？」などの質問である場合、その質問に対する【直接的かつ具体的な答えそのもの（例: 自動ツリーレイアウト機構、Notion連携など）】をノードのtitleにしてください。
+5. 【最重要: 質問への直接的な具体解・ネーミングノード化】
+   - ユーザーの入力が「どんな仕組みがありますか？」「どんなアプリとの連携が強力ですか？」「この名前から連想される名前を考えて」などの質問である場合、その質問に対する【直接的かつ具体的な答えや候補名そのもの（例: SynapFlow、NeuraLogic、自動ツリー整列など）】をノードのtitleにしてください。
+   - ユーザーの質問文をそのままオウム返しして「〜の自動化」などと合成するようなタイトルは絶対に避けてください。
 6. チャットへの返答「summaryMessage」には、ユーザーの問いに真っ向から答えた丁寧でわかりやすい解説を含めてください。
 
 出力フォーマット（必ず以下のJSON形式のみを出力）:
@@ -467,38 +468,84 @@ class AIEngine {
       ];
       replyMsg = `「${topic}」のデータ保存として、電波が切れても瞬時に動くローカル保存、複数端末で使えるクラウド同期、いつでも手元に取り出せる自由なエクスポート機能をご提案します！`;
     }
-    // 13. その他の自由入力・汎用質問（タイトルは純粋な要約のみ！役割・性質はタグとして登録！）
-    else {
-      // 助詞や疑問詞をきれいに取り除いて問いの核心キーワードを抽出
-      let cleaned = promptText
-        .replace(/[？\?]|ですか|ますか|でしょうか|とは|について|を教えて|どうすれば|何が|どんな|おすすめ|強力|効果的|最適/g, '')
-        .trim();
-      if (!cleaned) cleaned = topic;
+    // 13. 🌟 ネーミング・名前の派生・別名・キャッチコピーへの問い
+    else if (text.includes('名前') || text.includes('ネーミング') || text.includes('派生') || text.includes('連想') || text.includes('案') || text.includes('命名') || text.includes('候補')) {
+      // 親ノードの純粋な名称を抽出（カッコ内の補足などを除去）
+      const baseClean = topic.replace(/[\[\({【「].*?[\]\)}】」]/g, '').split(/[:：]/)[0].trim() || topic;
 
       generatedItems = [
         {
-          title: `${cleaned}の自動化・仕組み化`,
-          content: `「${promptText}」への具体的な解として、手動の手間を極力なくしスムーズに流れる仕組みを構築する`,
+          title: `${baseClean}Flow（流れる思考）`,
+          content: `「${baseClean}」の響きと特性を活かし、思考が淀みなく自然に流れる体験を象徴するネーミング候補`,
+          status: 'None',
+          nodeType: 'Inspiration',
+          roleTag: 'Naming'
+        },
+        {
+          title: `Think${baseClean}（思考の深化）`,
+          content: `頭に思い浮かんだアイデアをダイレクトに具現化する、直感性と知性を前面に出したスマートな名称`,
+          status: 'None',
+          nodeType: 'Inspiration',
+          roleTag: 'Naming'
+        },
+        {
+          title: `${baseClean}Craft（構造を創る）`,
+          content: `思考の断片を美しく組み立てる「クラフトマンシップ」を持たせた、信頼感あるネーミング候補`,
+          status: 'None',
+          nodeType: 'Inspiration',
+          roleTag: 'Naming'
+        },
+        {
+          title: `Meta${baseClean}（一段上の視点）`,
+          content: `一段高い視点から思考全体を俯瞰し、ブレイクスルーを生み出す拡張的な派生ネーム`,
+          status: 'None',
+          nodeType: 'Inspiration',
+          roleTag: 'Naming'
+        }
+      ];
+      replyMsg = `「${baseClean}」から連想される派生ネーミングとして、流動感を表すFlow系、知性を強調するThink系、構造化を象徴するCraft系、俯瞰を促すMeta系の4つの切り口で候補を提案しました！`;
+    }
+    // 14. その他の自由入力・汎用質問（助詞や文末を賢く処理して自然な日本語ノードを生成！）
+    else {
+      // 助詞や疑問詞、依頼表現を綺麗にトリム
+      let cleaned = promptText
+        .replace(/[？\?]|ですか|ますか|でしょうか|とは|について|を教えて|どうすれば|何が|どんな|おすすめ|強力|効果的|最適|考えて|考えてみて|出して|お願い/g, '')
+        .trim();
+      if (!cleaned || cleaned.length < 2) cleaned = topic;
+
+      // 文末の「の」「を」「に」「へ」などを除去
+      cleaned = cleaned.replace(/[のをにへとがで]$/, '').trim();
+
+      generatedItems = [
+        {
+          title: `${cleaned}のアプローチ`,
+          content: `「${promptText}」の本質的な課題や可能性を捉えた中心的なアイデア`,
           status: 'None',
           nodeType: 'Idea',
           roleTag: 'Solution'
         },
         {
-          title: `${cleaned}の直感的なUI設計`,
-          content: `初心者でも迷わず、1秒で理解して使えるようシンプルで親しみやすいインターフェースにする`,
+          title: `直感的な体験への反映`,
+          content: `考えた内容を実際の操作や使い心地に落とし込み、迷わず快適に扱える形にする`,
           status: 'None',
           nodeType: 'Idea',
           roleTag: 'Ingenuity'
         },
         {
-          title: `${cleaned}の試作と使い心地テスト`,
-          content: `まずは最小構成でプロトタイプを作り、実際の操作感や使い勝手を確かめる実践ステップ`,
+          title: `小さな検証ステップ`,
+          content: `まずは最小限の形で試作・実験し、手触りを確かめながら磨き上げるアクション`,
           status: 'None',
           nodeType: 'Task',
           roleTag: 'Verification'
         }
       ];
-      replyMsg = `「${topic}」についての「${promptText}」にお答えします！\n核心となるアプローチとして仕組み化・自動化の導入、迷いをなくす直感的な工夫、そして実用性を高める検証ステップをご提案します。それぞれの具体的なノードを展開しました！`;
+      replyMsg = `「${topic}」についての「${promptText}」を整理しました！\n核心となるアプローチ、直感的な体験への反映、そして具体的な検証ステップをご提案します。`;
+    }
+
+    // Gemini APIキーが未設定の場合のやさしい案内メッセージを添える
+    const apiKey = this.state.data.settings?.geminiApiKey;
+    if (!apiKey || apiKey.trim().length < 10) {
+      replyMsg += `\n\n💡【ヒント】右上の「⚙️ 設定」に Google Gemini API キーを登録すると、Gemini 3.6 Flash の本物のAI頭脳がリアルタイムに自由なネーミングやブレストを行います！`;
     }
 
     const addedIds = this.state.addBatchNodes(parentId, generatedItems, 'ai', promptText);
