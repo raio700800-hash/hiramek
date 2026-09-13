@@ -280,18 +280,33 @@ body.theme-chalkboard textarea:focus {
   border-color: #68d391 !important;
 }
 
-/* ツールバー */
+/* ツールバー（黒板モード） */
+body.theme-chalkboard section > div.absolute.top-3.right-4 > div,
 body.theme-chalkboard section > div.absolute.top-4.right-4 {
   background-color: rgba(14, 34, 24, 0.92) !important;
   border-color: #204632 !important;
 }
 
+body.theme-chalkboard section > div.absolute.top-3.right-4 button,
+body.theme-chalkboard section > div.absolute.top-3.right-4 select,
 body.theme-chalkboard section > div.absolute.top-4.right-4 button,
 body.theme-chalkboard section > div.absolute.top-4.right-4 select {
   color: #cbdad1 !important;
 }
 
+body.theme-chalkboard section > div.absolute.top-3.right-4 button:hover,
 body.theme-chalkboard section > div.absolute.top-4.right-4 button:hover {
+  background-color: #1c422e !important;
+  color: #ffffff !important;
+}
+
+/* 折りたたみボタン（黒板モード） */
+body.theme-chalkboard #btn-collapse-sidebar {
+  background-color: rgba(20, 56, 37, 0.85) !important;
+  border-color: rgba(52, 211, 153, 0.3) !important;
+  color: #a7f3d0 !important;
+}
+body.theme-chalkboard #btn-collapse-sidebar:hover {
   background-color: #1c422e !important;
   color: #ffffff !important;
 }

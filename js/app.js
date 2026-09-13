@@ -122,10 +122,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxImage = document.getElementById('lightbox-image');
   const lightboxCaption = document.getElementById('lightbox-caption');
 
-  // 📷 チャット欄の画像添付要素（ミル造さんご要望: 入力欄の真横・直上に設置！）
+  // 📷 チャット欄の画像添付要素（ミル造さんご要望: 入力枠内カメラアイコンに一本化！）
   const chatAttachImageBtn = document.getElementById('chat-attach-image-btn');
   const chatClipImageBtn = document.getElementById('chat-clip-image-btn');
   const chatImageFileInput = document.getElementById('chat-image-file-input');
+  const chatImageDot = document.getElementById('chat-image-dot');
   const chatAttachedImageBadge = document.getElementById('chat-attached-image-badge');
   const chatAttachedImageThumb = document.getElementById('chat-attached-image-thumb');
   const chatDetachImageBtn = document.getElementById('chat-detach-image-btn');
@@ -718,6 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnExpandSidebar.classList.remove('hidden');
     btnExpandSidebar.classList.add('flex');
     state.leftPaneCollapsed = true;
+    setTimeout(() => { if (canvas) { canvas.resize(); canvas.render(); } }, 310);
   }
 
   function expandLeftSidebar() {
@@ -726,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnExpandSidebar.classList.add('hidden');
     btnExpandSidebar.classList.remove('flex');
     state.leftPaneCollapsed = false;
+    setTimeout(() => { if (canvas) { canvas.resize(); canvas.render(); } }, 310);
   }
 
   btnCollapseSidebar.addEventListener('click', collapseLeftSidebar);
@@ -794,6 +797,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
       if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
       if (chatAttachedImageBadge) chatAttachedImageBadge.classList.add('hidden');
+      if (chatImageDot) chatImageDot.classList.add('hidden');
+      if (chatClipImageBtn) chatClipImageBtn.classList.remove('text-amber-500');
       renderCustomTags(null, data);
       return;
     }
@@ -820,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (editorDeleteBtn) editorDeleteBtn.disabled = !node.parentId;
     if (editorAddChildBtn) editorAddChildBtn.disabled = false;
 
-    // 📷 参照画像のプレビュー同期（エディタ ＆ チャット入力欄バッジ）
+    // 📷 参照画像のプレビュー同期（エディタ ＆ チャット入力枠内カメラアイコン）
     if (node.image) {
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.remove('hidden');
       if (nodeImagePreviewImg) nodeImagePreviewImg.src = node.image;
@@ -830,6 +835,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chatAttachedImageBadge.classList.remove('hidden');
         if (chatAttachedImageThumb) chatAttachedImageThumb.src = node.image;
       }
+      if (chatImageDot) chatImageDot.classList.remove('hidden');
+      if (chatClipImageBtn) chatClipImageBtn.classList.add('text-amber-500');
     } else {
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
       if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
@@ -838,6 +845,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chatAttachedImageBadge.classList.add('hidden');
         if (chatAttachedImageThumb) chatAttachedImageThumb.src = '';
       }
+      if (chatImageDot) chatImageDot.classList.add('hidden');
+      if (chatClipImageBtn) chatClipImageBtn.classList.remove('text-amber-500');
     }
 
     // 🌱 ノード誕生きっかけバッジの即時反映（スクロール不要！）
@@ -1207,11 +1216,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (nodeImagePreviewImg) nodeImagePreviewImg.src = compressedDataUrl;
       if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
 
-      // 4. チャット欄の画像バッジ更新（ミル造さんご要望: 入力欄の真横・直上にも即時反映！）
+      // 4. チャット欄の画像インジケーター更新（入力枠内カメラアイコンのドット点灯）
       if (chatAttachedImageBadge) {
         chatAttachedImageBadge.classList.remove('hidden');
         if (chatAttachedImageThumb) chatAttachedImageThumb.src = compressedDataUrl;
       }
+      if (chatImageDot) chatImageDot.classList.remove('hidden');
+      if (chatClipImageBtn) chatClipImageBtn.classList.add('text-amber-500');
     });
   }
 
