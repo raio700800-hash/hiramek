@@ -1805,11 +1805,63 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===========================================================================
   // 📤 思考データの書き出し (エクスポートモーダル制御)
   // ===========================================================================
+  const exportTextOptions = document.getElementById('export-text-options');
+  const exportPngOptions = document.getElementById('export-png-options');
+  const exportImagePreviewWrapper = document.getElementById('export-image-preview-wrapper');
+  const exportImagePreview = document.getElementById('export-image-preview');
+  const exportPngThemeRadios = document.querySelectorAll('input[name="export-png-theme"]');
   let currentExportType = 'aicontext';
+  let currentPngDataUrl = null;
+  let currentPngBlob = null;
 
-  const updateExportPreview = () => {
+  const updateExportPreview = async () => {
     const includeDetails = exportOptIncludeDetails ? exportOptIncludeDetails.checked : true;
     const adoptedOnly = exportOptAdoptedOnly ? exportOptAdoptedOnly.checked : false;
+
+    // 🖼️ PNG画像エクスポート処理
+    if (currentExportType === 'png') {
+      if (exportPreviewTextarea) exportPreviewTextarea.classList.add('hidden');
+      if (exportImagePreviewWrapper) exportImagePreviewWrapper.classList.remove('hidden');
+      if (exportTextOptions) exportTextOptions.classList.add('hidden');
+      if (exportPngOptions) {
+        exportPngOptions.classList.remove('hidden');
+        exportPngOptions.classList.add('flex');
+      }
+
+      let selectedTheme = 'auto';
+      if (exportPngThemeRadios) {
+        exportPngThemeRadios.forEach(r => {
+          if (r.checked) selectedTheme = r.value;
+        });
+      }
+
+      if (canvas && typeof canvas.exportToCanvas === 'function') {
+        try {
+          const res = await canvas.exportToCanvas({
+            theme: selectedTheme,
+            adoptedOnly,
+            includeDetails
+          });
+          currentPngDataUrl = res.dataUrl;
+          currentPngBlob = res.blob;
+          if (exportImagePreview) {
+            exportImagePreview.src = res.dataUrl;
+          }
+        } catch (err) {
+          console.error('PNG画像書き出しエラー:', err);
+        }
+      }
+      return;
+    }
+
+    // 📝 テキスト系エクスポート (AI Context / Mermaid / Notion / JSON)
+    if (exportPreviewTextarea) exportPreviewTextarea.classList.remove('hidden');
+    if (exportImagePreviewWrapper) exportImagePreviewWrapper.classList.add('hidden');
+    if (exportTextOptions) exportTextOptions.classList.remove('hidden');
+    if (exportPngOptions) {
+      exportPngOptions.classList.add('hidden');
+      exportPngOptions.classList.remove('flex');
+    }
 
     let output = '';
     if (currentExportType === 'aicontext') {
@@ -1865,10 +1917,46 @@ document.addEventListener('DOMContentLoaded', () => {
   if (exportOptAdoptedOnly) {
     exportOptAdoptedOnly.addEventListener('change', updateExportPreview);
   }
+  if (exportPngThemeRadios) {
+    exportPngThemeRadios.forEach(radio => {
+      radio.addEventListener('change', updateExportPreview);
+    });
+  }
 
-  // クリップボードにコピー
+  // クリップボードにコピー（テキスト＆PNG画像両対応！）
   if (btnExportCopy) {
-    btnExportCopy.addEventListener('click', () => {
+    btnExportCopy.addEventListener('click', async () => {
+      // 🖼️ PNG画像のクリップボードコピー
+      if (currentExportType === 'png') {
+        if (!currentPngBlob) {
+          alert('画像の生成中です。少し待ってから再度お試しください。');
+          return;
+        }
+        try {
+          if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': currentPngBlob })
+            ]);
+            const origText = btnExportCopy.innerHTML;
+            btnExportCopy.innerHTML = `<span>✔️ 画像をコピー完了！</span>`;
+            btnExportCopy.classList.replace('bg-amber-500', 'bg-emerald-600');
+            btnExportCopy.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-700');
+            setTimeout(() => {
+              btnExportCopy.innerHTML = origText;
+              btnExportCopy.classList.replace('bg-emerald-600', 'bg-amber-500');
+              btnExportCopy.classList.replace('hover:bg-emerald-700', 'hover:bg-amber-600');
+            }, 2000);
+          } else {
+            alert('お使いのブラウザでは画像の直接クリップボードコピーに対応していません。「ファイル保存」をお使いください。');
+          }
+        } catch (err) {
+          console.warn('クリップボードコピー失敗:', err);
+          alert('画像のコピーに失敗しました。「ファイル保存」からダウンロードしてください。');
+        }
+        return;
+      }
+
+      // 📝 テキストのクリップボードコピー
       const content = exportPreviewTextarea.value;
       if (!content) return;
       navigator.clipboard.writeText(content).then(() => {
@@ -1887,15 +1975,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ファイルとして保存（ダウンロード）
+  // ファイルとして保存（ダウンロード：テキスト＆PNG画像両対応！）
   if (btnExportDownload) {
     btnExportDownload.addEventListener('click', () => {
-      const content = exportPreviewTextarea.value;
-      if (!content) return;
-
       const rootNode = Object.values(state.data.nodes).find(n => !n.parentId) || { title: 'hiramek' };
       const safeTitle = (rootNode.title || 'hiramek').replace(/[\\/:*?"<>| ]/g, '_').substring(0, 20);
       const dateStr = new Date().toISOString().slice(0, 10);
+
+      // 🖼️ PNG画像のファイルダウンロード
+      if (currentExportType === 'png') {
+        if (!currentPngBlob && !currentPngDataUrl) {
+          alert('画像の生成中です。少し待ってから再度お試しください。');
+          return;
+        }
+        const a = document.createElement('a');
+        a.href = currentPngDataUrl;
+        a.download = `hiramek-mindmap-${safeTitle}-${dateStr}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      // 📝 テキストファイルのダウンロード
+      const content = exportPreviewTextarea.value;
+      if (!content) return;
 
       let filename = `hiramek-${safeTitle}-${dateStr}.md`;
       let mimeType = 'text/markdown;charset=utf-8';

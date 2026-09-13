@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="./css/style.css?v=25">
+  <link rel="stylesheet" href="./css/style.css?v=26">
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-screen overflow-hidden">
 
@@ -884,26 +884,55 @@
         <button type="button" class="export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-export-type="json">
           💾 完全復元 JSON
         </button>
+        <button type="button" class="export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-export-type="png">
+          🖼️ PNG画像 (SNS・スライド用)
+        </button>
       </div>
 
-      <!-- 絞り込みオプション (チェックボックス) -->
-      <div class="flex items-center gap-4 text-xs text-slate-600 shrink-0 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
-        <label class="flex items-center gap-1.5 cursor-pointer font-medium select-none">
-          <input id="export-opt-include-details" type="checkbox" checked class="rounded text-amber-600 focus:ring-amber-500">
-          <span>詳細メモ・決定理由を含める</span>
-        </label>
-        <label class="flex items-center gap-1.5 cursor-pointer font-medium select-none">
-          <input id="export-opt-adopted-only" type="checkbox" class="rounded text-amber-600 focus:ring-amber-500">
-          <span>💡 採用（Adopted）ノードのみ出力</span>
-        </label>
+      <!-- 絞り込みオプション (チェックボックス & PNGスタイル選択) -->
+      <div class="flex items-center justify-between gap-4 text-xs text-slate-600 shrink-0 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+        <div id="export-text-options" class="flex items-center gap-4">
+          <label class="flex items-center gap-1.5 cursor-pointer font-medium select-none">
+            <input id="export-opt-include-details" type="checkbox" checked class="rounded text-amber-600 focus:ring-amber-500">
+            <span>詳細メモ・決定理由を含める</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer font-medium select-none">
+            <input id="export-opt-adopted-only" type="checkbox" class="rounded text-amber-600 focus:ring-amber-500">
+            <span>💡 採用（Adopted）ノードのみ出力</span>
+          </label>
+        </div>
+        <div id="export-png-options" class="hidden items-center gap-3">
+          <span class="font-bold text-slate-700">背景:</span>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="export-png-theme" value="auto" checked class="text-amber-600">
+            <span>現在に合わせる</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="export-png-theme" value="whiteboard" class="text-amber-600">
+            <span>☀️ 白板</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="export-png-theme" value="chalkboard" class="text-amber-600">
+            <span>🌙 黒板</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="export-png-theme" value="transparent" class="text-amber-600">
+            <span>🔲 透過</span>
+          </label>
+        </div>
       </div>
 
       <!-- プレビュー表示エリア -->
-      <div class="flex-1 min-h-[160px] flex flex-col">
+      <div class="flex-1 min-h-[180px] flex flex-col relative overflow-hidden">
         <textarea id="export-preview-textarea" 
                   readonly 
                   class="w-full flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none resize-none leading-relaxed"
                   title="書き出し内容プレビュー"></textarea>
+        <!-- 🖼️ 画像プレビューエリア（PNGタブ選択時に表示） -->
+        <div id="export-image-preview-wrapper" class="hidden w-full flex-1 p-2 bg-slate-100/70 border border-slate-200 rounded-xl flex flex-col items-center justify-center overflow-auto">
+          <img id="export-image-preview" class="max-h-[260px] max-w-full object-contain rounded-lg shadow-md border border-slate-200/80 bg-white" alt="マインドマップ画像プレビュー">
+          <p class="text-[11px] text-slate-500 mt-1.5 font-medium">💡 高解像度（Retina 2x）の鮮明なPNG画像として生成されます</p>
+        </div>
       </div>
 
       <!-- モーダルフッター (コピー ＆ ファイル保存) -->

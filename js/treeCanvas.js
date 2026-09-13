@@ -1610,6 +1610,360 @@ class MindMapTreeCanvas {
       y: Math.round(worldY * this.scale + this.panY)
     };
   }
+
+  /**
+   * 🖼️ マインドマップ全体を高解像度HTML5 Canvasとして一括レンダリング（画像書き出し機能）
+   * - 外部ライブラリ不要で100%ピュアJavaScript＆Canvas API動作（オフライン完全対応）
+   * - Retina 2xの高解像度スケーリングで文字もノードもくっきり鮮明
+   * - 白板調（Whiteboard）、黒板調（Chalkboard）、透過背景（Transparent）の選択に対応
+   * - ノードカード、接続ベジェ曲線、大枠フレーム、添付画像サムネイル、ステータスバッジを完全描画
+   * @param {Object} options - { theme: 'auto'|'whiteboard'|'chalkboard'|'transparent', adoptedOnly: boolean, includeDetails: boolean }
+   * @returns {Promise<{ canvas: HTMLCanvasElement, dataUrl: string, blob: Blob }>}
+   */
+  async exportToCanvas(options = {}) {
+    const activeTheme = this.state.data.settings?.theme || 'whiteboard';
+    let chosenTheme = options.theme || 'auto';
+    if (chosenTheme === 'auto') {
+      chosenTheme = activeTheme;
+    }
+    const isChalkboard = chosenTheme === 'chalkboard';
+    const isTransparent = chosenTheme === 'transparent';
+
+    // 1. 対象ノードの抽出（採用ノードのみ絞り込み等のオプション対応）
+    const allNodes = Object.values(this.state.data.nodes || {});
+    let targetNodes = allNodes;
+    if (options.adoptedOnly) {
+      targetNodes = allNodes.filter(n => n.status === 'Adopted' || !n.parentId);
+    }
+    if (targetNodes.length === 0) targetNodes = allNodes;
+
+    const nodeMap = new Map();
+    targetNodes.forEach(n => nodeMap.set(n.id, n));
+
+    const allFrames = Object.values(this.state.data.frames || {});
+
+    // 2. バウンディングボックス（描画範囲）の自動算出
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    targetNodes.forEach(n => {
+      const nx = n.x || 0;
+      const ny = n.y || 0;
+      const nw = 270;
+      const nh = n.image ? 135 : 75;
+      minX = Math.min(minX, nx);
+      minY = Math.min(minY, ny);
+      maxX = Math.max(maxX, nx + nw);
+      maxY = Math.max(maxY, ny + nh);
+    });
+
+    allFrames.forEach(f => {
+      const fx = f.x || 0;
+      const fy = f.y || 0;
+      const fw = f.width || 300;
+      const fh = f.height || 200;
+      minX = Math.min(minX, fx);
+      minY = Math.min(minY, fy);
+      maxX = Math.max(maxX, fx + fw);
+      maxY = Math.max(maxY, fy + fh);
+    });
+
+    if (minX === Infinity) {
+      minX = 0; minY = 0; maxX = 800; maxY = 600;
+    }
+
+    const padding = 70;
+    const worldW = Math.max(maxX - minX + padding * 2, 700);
+    const worldH = Math.max(maxY - minY + padding * 2, 450);
+
+    const dpr = 2; // Retina 2x 高解像度
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(worldW * dpr);
+    canvas.height = Math.round(worldH * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const offsetX = padding - minX;
+    const offsetY = padding - minY;
+
+    // 角丸矩形描画ヘルパー関数（安全フォールバック付き）
+    const drawRoundRect = (c, x, y, w, h, r) => {
+      if (typeof c.roundRect === 'function') {
+        c.beginPath();
+        c.roundRect(x, y, w, h, r);
+      } else {
+        c.beginPath();
+        c.moveTo(x + r, y);
+        c.lineTo(x + w - r, y);
+        c.arcTo(x + w, y, x + w, y + r, r);
+        c.lineTo(x + w, y + h - r);
+        c.arcTo(x + w, y + h, x + w - r, y + h, r);
+        c.lineTo(x + r, y + h);
+        c.arcTo(x, y + h, x, y + h - r, r);
+        c.lineTo(x, y + r);
+        c.arcTo(x, y, x + r, y, r);
+        c.closePath();
+      }
+    };
+
+    // 画像読み込みヘルパー
+    const loadImage = (src) => new Promise((resolve) => {
+      if (!src) return resolve(null);
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+
+    // 3. 背景描画
+    if (!isTransparent) {
+      if (isChalkboard) {
+        // 黒板モード背景
+        ctx.fillStyle = '#0f281b';
+        ctx.fillRect(0, 0, worldW, worldH);
+
+        // チョーク調グリッドドット
+        ctx.fillStyle = 'rgba(52, 211, 153, 0.08)';
+        for (let gx = 0; gx < worldW; gx += 28) {
+          for (let gy = 0; gy < worldH; gy += 28) {
+            ctx.fillRect(gx, gy, 1.5, 1.5);
+          }
+        }
+      } else {
+        // ホワイトボード背景
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, worldW, worldH);
+
+        // クリーンなグリッドドット
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
+        for (let gx = 0; gx < worldW; gx += 24) {
+          for (let gy = 0; gy < worldH; gy += 24) {
+            ctx.fillRect(gx, gy, 1.2, 1.2);
+          }
+        }
+      }
+    }
+
+    // 4. 🖼️ フレーム描画（最背面）
+    const frameColorStyles = {
+      blue: { stroke: isChalkboard ? '#60a5fa' : '#93c5fd', fill: isChalkboard ? 'rgba(30, 58, 138, 0.18)' : 'rgba(239, 246, 255, 0.6)' },
+      green: { stroke: isChalkboard ? '#34d399' : '#86efac', fill: isChalkboard ? 'rgba(6, 78, 59, 0.18)' : 'rgba(240, 253, 244, 0.6)' },
+      amber: { stroke: isChalkboard ? '#fde047' : '#fde68a', fill: isChalkboard ? 'rgba(120, 53, 15, 0.18)' : 'rgba(254, 252, 232, 0.6)' },
+      purple: { stroke: isChalkboard ? '#c084fc' : '#d8b4fe', fill: isChalkboard ? 'rgba(88, 28, 135, 0.18)' : 'rgba(250, 245, 255, 0.6)' },
+      rose: { stroke: isChalkboard ? '#fb7185' : '#fecdd3', fill: isChalkboard ? 'rgba(136, 19, 55, 0.18)' : 'rgba(255, 241, 242, 0.6)' },
+      orange: { stroke: isChalkboard ? '#fb923c' : '#fed7aa', fill: isChalkboard ? 'rgba(124, 45, 18, 0.18)' : 'rgba(255, 247, 237, 0.6)' }
+    };
+
+    allFrames.forEach(frame => {
+      const fx = (frame.x || 0) + offsetX;
+      const fy = (frame.y || 0) + offsetY;
+      const fw = frame.width || 320;
+      const fh = frame.height || 220;
+      const fStyle = frameColorStyles[frame.color] || frameColorStyles.blue;
+
+      ctx.save();
+      // フレーム背景
+      drawRoundRect(ctx, fx, fy, fw, fh, 16);
+      ctx.fillStyle = fStyle.fill;
+      ctx.fill();
+
+      // フレーム境界線（破線）
+      ctx.strokeStyle = fStyle.stroke;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // フレームタイトルピル
+      const titleText = `🖼️ ${frame.title || 'フレーム'}`;
+      ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+      const textMetrics = ctx.measureText(titleText);
+      const pillW = textMetrics.width + 18;
+      const pillH = 22;
+
+      drawRoundRect(ctx, fx + 12, fy - 11, pillW, pillH, 8);
+      ctx.fillStyle = isChalkboard ? '#143825' : '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = fStyle.stroke;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = isChalkboard ? '#e2e8f0' : '#334155';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(titleText, fx + 21, fy);
+      ctx.restore();
+    });
+
+    // 5. 🔗 接続ベジェ曲線を描画
+    ctx.save();
+    targetNodes.forEach(node => {
+      if (!node.parentId) return;
+      const parent = nodeMap.get(node.parentId);
+      if (!parent) return;
+
+      const pX = (parent.x || 0) + 260 + offsetX;
+      const pY = (parent.y || 0) + 36 + offsetY;
+      const cX = (node.x || 0) + offsetX;
+      const cY = (node.y || 0) + 36 + offsetY;
+
+      ctx.beginPath();
+      ctx.moveTo(pX, pY);
+      const dx = Math.max(Math.abs(cX - pX) * 0.45, 30);
+      ctx.bezierCurveTo(pX + dx, pY, cX - dx, cY, cX, cY);
+
+      ctx.strokeStyle = isChalkboard ? '#3b7a55' : '#cbd5e1';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    // 6. 📝 ノードカードの描画準備（添付画像の非同期読み込み）
+    const nodeImages = new Map();
+    for (const node of targetNodes) {
+      if (node.image) {
+        const loaded = await loadImage(node.image);
+        if (loaded) nodeImages.set(node.id, loaded);
+      }
+    }
+
+    // ノードカラーパレット定義
+    const nodePaletteStyles = {
+      default: { fill: isChalkboard ? '#143825' : '#ffffff', border: isChalkboard ? '#3b7a55' : '#e2e8f0', text: isChalkboard ? '#ffffff' : '#0f172a' },
+      blue: { fill: isChalkboard ? 'rgba(30, 58, 138, 0.85)' : '#eff6ff', border: isChalkboard ? '#60a5fa' : '#bfdbfe', text: isChalkboard ? '#ffffff' : '#1e3a8a' },
+      green: { fill: isChalkboard ? 'rgba(6, 78, 59, 0.85)' : '#f0fdf4', border: isChalkboard ? '#34d399' : '#bbf7d0', text: isChalkboard ? '#ffffff' : '#14532d' },
+      amber: { fill: isChalkboard ? 'rgba(120, 53, 15, 0.85)' : '#fffbeb', border: isChalkboard ? '#fde047' : '#fde68a', text: isChalkboard ? '#ffffff' : '#78350f' },
+      purple: { fill: isChalkboard ? 'rgba(88, 28, 135, 0.85)' : '#faf5ff', border: isChalkboard ? '#c084fc' : '#e9d5ff', text: isChalkboard ? '#ffffff' : '#581c87' },
+      rose: { fill: isChalkboard ? 'rgba(136, 19, 55, 0.85)' : '#fff1f2', border: isChalkboard ? '#fb7185' : '#fecdd3', text: isChalkboard ? '#ffffff' : '#881337' },
+      orange: { fill: isChalkboard ? 'rgba(124, 45, 18, 0.85)' : '#fff7ed', border: isChalkboard ? '#fb923c' : '#fed7aa', text: isChalkboard ? '#ffffff' : '#7c2d12' }
+    };
+
+    const typeIcons = {
+      Goal: '🎯', Idea: '💡', Task: '✅', Problem: '⚠️', Fact: '📌', Question: '❓', Inspiration: '✨', Reference: '📚'
+    };
+
+    // 7. 各ノードカードを描画
+    targetNodes.forEach(node => {
+      const nx = (node.x || 0) + offsetX;
+      const ny = (node.y || 0) + offsetY;
+      const nw = 260;
+      const hasImage = nodeImages.has(node.id);
+      const nh = hasImage ? 130 : 66;
+
+      const style = nodePaletteStyles[node.color] || nodePaletteStyles.default;
+
+      ctx.save();
+
+      // カードの影
+      ctx.shadowColor = isChalkboard ? 'rgba(0, 0, 0, 0.45)' : 'rgba(15, 23, 42, 0.08)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 4;
+
+      // カード本体背景
+      drawRoundRect(ctx, nx, ny, nw, nh, 12);
+      ctx.fillStyle = style.fill;
+      ctx.fill();
+
+      // カード枠線
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = style.border;
+      ctx.stroke();
+
+      // カードヘッダー: ノードタイプ＆ステータス
+      const typeIcon = typeIcons[node.nodeType] || '💡';
+      ctx.font = '12px system-ui, -apple-system, sans-serif';
+      ctx.fillText(typeIcon, nx + 12, ny + 22);
+
+      // ステータスバッジ（採用時など）
+      if (node.status === 'Adopted') {
+        const badgeText = '採用';
+        ctx.font = 'bold 9px system-ui, -apple-system, sans-serif';
+        const bw = ctx.measureText(badgeText).width + 10;
+        drawRoundRect(ctx, nx + nw - bw - 10, ny + 10, bw, 16, 4);
+        ctx.fillStyle = isChalkboard ? '#10b981' : '#15803d';
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(badgeText, nx + nw - bw - 5, ny + 18);
+      }
+
+      // ノードタイトル（要約フレーズ）
+      ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = style.text;
+      ctx.textBaseline = 'top';
+
+      let title = node.title || 'ノード';
+      const maxTitleW = nw - 55;
+      if (ctx.measureText(title).width > maxTitleW) {
+        while (title.length > 2 && ctx.measureText(title + '…').width > maxTitleW) {
+          title = title.substring(0, title.length - 1);
+        }
+        title += '…';
+      }
+      ctx.fillText(title, nx + 32, ny + 13);
+
+      // 詳細テキストまたは添付画像サムネイル
+      if (hasImage) {
+        const imgObj = nodeImages.get(node.id);
+        const thumbX = nx + 12;
+        const thumbY = ny + 38;
+        const thumbW = nw - 24;
+        const thumbH = 80;
+
+        ctx.save();
+        drawRoundRect(ctx, thumbX, thumbY, thumbW, thumbH, 8);
+        ctx.clip();
+        ctx.drawImage(imgObj, thumbX, thumbY, thumbW, thumbH);
+        ctx.restore();
+
+        // サムネイル枠線
+        drawRoundRect(ctx, thumbX, thumbY, thumbW, thumbH, 8);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = style.border;
+        ctx.stroke();
+      } else if (options.includeDetails !== false && node.content) {
+        ctx.font = '10px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = isChalkboard ? '#cbdad1' : '#64748b';
+        let detail = (node.content || '').replace(/[\r\n\t]+/g, ' ').trim();
+        const maxDetailW = nw - 24;
+        if (ctx.measureText(detail).width > maxDetailW) {
+          while (detail.length > 2 && ctx.measureText(detail + '…').width > maxDetailW) {
+            detail = detail.substring(0, detail.length - 1);
+          }
+          detail += '…';
+        }
+        ctx.fillText(detail, nx + 12, ny + 38);
+      }
+
+      ctx.restore();
+    });
+
+    // 8. 🌟 右下 Hiramek ブランド透かしロゴ
+    ctx.save();
+    const logoText = '💡 Hiramek — 思考マインドマップ';
+    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+    const logoW = ctx.measureText(logoText).width + 24;
+    const logoH = 26;
+    const logoX = worldW - logoW - 20;
+    const logoY = worldH - logoH - 18;
+
+    drawRoundRect(ctx, logoX, logoY, logoW, logoH, 10);
+    ctx.fillStyle = isChalkboard ? 'rgba(20, 56, 37, 0.85)' : 'rgba(255, 255, 255, 0.85)';
+    ctx.fill();
+    ctx.strokeStyle = isChalkboard ? '#204632' : '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = isChalkboard ? '#e2e8f0' : '#475569';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(logoText, logoX + 12, logoY + (logoH / 2));
+    ctx.restore();
+
+    // 9. 画像データ生成 (DataURL & Blob)
+    const dataUrl = canvas.toDataURL('image/png');
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+    return { canvas, dataUrl, blob };
+  }
 }
 
 window.MindMapTreeCanvas = MindMapTreeCanvas;
