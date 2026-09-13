@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>思考マインドマップ — Chat-linked Mind Map App</title>
+  <title>Hiramek (ヒラメック) — ひらめきを構造化する思考マインドマップ</title>
   
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23f59e0b'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white'>🧠</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23f59e0b'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white'>💡</text></svg>">
   <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="思考マップ">
+  <meta name="apple-mobile-web-app-title" content="Hiramek">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,16 +25,16 @@
   <header class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-30 shadow-xs">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-white text-lg shadow-xs">
-        🧠
+        💡
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="font-bold text-slate-800 text-sm tracking-tight">思考マインドマップ</h1>
+          <h1 class="font-bold text-slate-800 text-sm tracking-tight">Hiramek</h1>
           <span class="px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded-full border border-amber-200">
-            Chat-linked
+            ヒラメック
           </span>
         </div>
-        <p class="text-[10px] text-slate-400">ミル造さんの思考をAIが広げる・深掘る・整理する</p>
+        <p class="text-[10px] text-slate-400">ひらめきを構造化する、次世代思考マインドマップ</p>
       </div>
     </div>
 
@@ -42,9 +42,29 @@
     <div class="flex items-center gap-2">
       <!-- 新しい題材を始めるボタン -->
       <button id="btn-new-topic" 
-              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors shadow-2xs"
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors shadow-2xs cursor-pointer"
               title="新しい思考整理の題材をスタート">
-        <span>🌱 新しい題材を始める</span>
+        <span>🌱 新しい題材</span>
+      </button>
+
+      <!-- 📥 インポートボタン (ChatGPT / Notion / Obsidian / Mermaid から読み込み) -->
+      <button id="btn-import" 
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors shadow-2xs cursor-pointer"
+              title="箇条書き・Mermaid・AI会話ログ・JSONを読み込む">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+        </svg>
+        <span>📥 読み込み</span>
+      </button>
+
+      <!-- 📤 エクスポートボタン (AI Context / Mermaid / Notion / JSON書き出し) -->
+      <button id="btn-export" 
+              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors shadow-2xs cursor-pointer"
+              title="AI Context・Mermaid・Notion・JSONとして書き出し">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+        <span>📤 書き出し</span>
       </button>
 
       <!-- ☀️/🌙 テーマ切替ボタン（ホワイトボード / 黒板） -->
@@ -55,19 +75,9 @@
         <span id="theme-btn-text">ホワイトボード</span>
       </button>
 
-      <!-- エクスポートボタン -->
-      <button id="btn-export" 
-              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-              title="Markdown形式で書き出し">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-        </svg>
-        <span>書き出し</span>
-      </button>
-
       <!-- 設定ボタン (Gemini APIキー) -->
       <button id="btn-settings" 
-              class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               title="APIキー・各種設定">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -671,10 +681,165 @@
     </div>
   </div>
 
-  <script src="./js/state.js?v=15"></script>
-  <script src="./js/treeCanvas.js?v=15"></script>
-  <script src="./js/aiEngine.js?v=15"></script>
-  <script src="./js/pwa.js?v=15"></script>
-  <script src="./js/app.js?v=15"></script>
+  <!-- =========================================================================== -->
+  <!-- 📥 インポートモーダル (ChatGPT / Notion / Obsidian / Mermaid / JSON) -->
+  <!-- =========================================================================== -->
+  <div id="import-modal" class="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-slate-100 m-4 space-y-4 max-h-[90vh] flex flex-col">
+      <!-- モーダルヘッダー -->
+      <div class="flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base">
+            📥
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 text-base">思考データの読み込み (インポート)</h3>
+            <p class="text-xs text-slate-400">ChatGPTの壁打ち、Notion、Obsidian、Mermaidのテキストを貼り付けてください</p>
+          </div>
+        </div>
+        <button id="close-import-modal-btn" class="text-slate-400 hover:text-slate-600 p-1 text-lg font-bold cursor-pointer transition-colors">×</button>
+      </div>
+
+      <!-- 入力形式タブ ＆ 自動判別バッジ -->
+      <div class="flex items-center justify-between shrink-0 border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-1 text-xs">
+          <button type="button" class="import-tab-btn px-2.5 py-1.5 font-semibold rounded-lg text-indigo-700 bg-indigo-50 border border-indigo-200 transition-all cursor-pointer" data-format="auto">
+            ⚡ 自動判別
+          </button>
+          <button type="button" class="import-tab-btn px-2.5 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-format="markdown">
+            📝 箇条書き
+          </button>
+          <button type="button" class="import-tab-btn px-2.5 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-format="mermaid">
+            📊 Mermaid
+          </button>
+          <button type="button" class="import-tab-btn px-2.5 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-format="ai">
+            ✨ AI自動変換
+          </button>
+          <button type="button" class="import-tab-btn px-2.5 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-format="json">
+            💾 JSON
+          </button>
+        </div>
+        <span id="import-detected-badge" class="px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-500 rounded-full border border-slate-200">
+          形式未判定
+        </span>
+      </div>
+
+      <!-- 入力テキストエリア -->
+      <div class="flex-1 min-h-[160px] flex flex-col">
+        <textarea id="import-textarea" 
+                  class="w-full flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white resize-none leading-relaxed"
+                  placeholder="ChatGPTやNotionの箇条書き、Mermaidコード、または会話文を貼り付けてください...&#10;&#10;【例: 箇条書き】&#10;- 新規事業アイデア&#10;  - ターゲット層&#10;    - 忙しいビジネスパーソン&#10;  - 提供価値&#10;    - 思考の即時マインドマップ化"></textarea>
+      </div>
+
+      <!-- 取り込み方法の選択（新規マップ vs 選択中ノードに追加） -->
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 shrink-0">
+        <div class="text-xs font-semibold text-slate-700">取り込み方法：</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <label class="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors">
+            <input type="radio" name="import-mode" value="replace" checked class="text-indigo-600 focus:ring-indigo-500">
+            <div>
+              <div class="font-bold text-slate-800">🌱 新しいマップとして開く</div>
+              <div class="text-[10px] text-slate-400">現在の画面をリセットして最初から展開</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors">
+            <input type="radio" name="import-mode" value="append" class="text-indigo-600 focus:ring-indigo-500">
+            <div>
+              <div class="font-bold text-slate-800">➕ 選択中のノードに追加</div>
+              <div class="text-[10px] text-slate-400">現在選択中のノードの子ツリーとして合流</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- モーダルフッター -->
+      <div class="flex items-center justify-between shrink-0 pt-2 border-t border-slate-100">
+        <button id="cancel-import-modal-btn" type="button" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">
+          キャンセル
+        </button>
+        <button id="execute-import-btn" type="button" class="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow cursor-pointer">
+          <span>🚀 マップを生成して読み込む</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================== -->
+  <!-- 📤 エクスポートモーダル (AI Context / Mermaid / Notion / JSON) -->
+  <!-- =========================================================================== -->
+  <div id="export-modal" class="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-slate-100 m-4 space-y-4 max-h-[90vh] flex flex-col">
+      <!-- モーダルヘッダー -->
+      <div class="flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-base">
+            📤
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 text-base">思考データの書き出し (エクスポート)</h3>
+            <p class="text-xs text-slate-400">ChatGPTへの前提知識渡し、Notion・Obsidianへの保管・図解化</p>
+          </div>
+        </div>
+        <button id="close-export-modal-btn" class="text-slate-400 hover:text-slate-600 p-1 text-lg font-bold cursor-pointer transition-colors">×</button>
+      </div>
+
+      <!-- 用途別タブ -->
+      <div class="flex items-center gap-1 text-xs shrink-0 border-b border-slate-100 pb-2">
+        <button type="button" class="export-tab-btn px-3 py-1.5 font-bold rounded-lg text-amber-800 bg-amber-50 border border-amber-200 transition-all cursor-pointer" data-export-type="aicontext">
+          🤖 AI Context (ChatGPT/Gemini)
+        </button>
+        <button type="button" class="export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-export-type="mermaid">
+          📊 Mermaid (Obsidian/Notion図解)
+        </button>
+        <button type="button" class="export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-export-type="notion">
+          📝 Notion / Obsidian用
+        </button>
+        <button type="button" class="export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer" data-export-type="json">
+          💾 完全復元 JSON
+        </button>
+      </div>
+
+      <!-- 絞り込みオプション (チェックボックス) -->
+      <div class="flex items-center gap-4 text-xs text-slate-600 shrink-0 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+        <label class="flex items-center gap-1.5 cursor-pointer font-medium select-none">
+          <input id="export-opt-include-details" type="checkbox" checked class="rounded text-amber-600 focus:ring-amber-500">
+          <span>詳細メモ・決定理由を含める</span>
+        </label>
+        <label class="flex items-center gap-1.5 cursor-pointer font-medium select-none">
+          <input id="export-opt-adopted-only" type="checkbox" class="rounded text-amber-600 focus:ring-amber-500">
+          <span>💡 採用（Adopted）ノードのみ出力</span>
+        </label>
+      </div>
+
+      <!-- プレビュー表示エリア -->
+      <div class="flex-1 min-h-[160px] flex flex-col">
+        <textarea id="export-preview-textarea" 
+                  readonly 
+                  class="w-full flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none resize-none leading-relaxed"
+                  title="書き出し内容プレビュー"></textarea>
+      </div>
+
+      <!-- モーダルフッター (コピー ＆ ファイル保存) -->
+      <div class="flex items-center justify-between shrink-0 pt-2 border-t border-slate-100">
+        <button id="cancel-export-modal-btn" type="button" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 cursor-pointer transition-colors">
+          閉じる
+        </button>
+        <div class="flex items-center gap-2">
+          <button id="btn-export-download" type="button" class="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer">
+            <span>💾 ファイル保存</span>
+          </button>
+          <button id="btn-export-copy" type="button" class="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow cursor-pointer">
+            <span>📋 クリップボードにコピー</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/state.js?v=16"></script>
+  <script src="./js/treeCanvas.js?v=16"></script>
+  <script src="./js/aiEngine.js?v=16"></script>
+  <script src="./js/pwa.js?v=16"></script>
+  <script src="./js/app.js?v=16"></script>
 </body>
 </html>

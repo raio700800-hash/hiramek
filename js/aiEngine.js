@@ -506,6 +506,123 @@ class AIEngine {
 
     return { addedIds, replyText: replyMsg };
   }
+
+  /**
+   * 🌟 自然文・会議ログ・ChatGPT会話文からGeminiでマインドマップ階層構造（JSON）を抽出
+   * @param {string} rawText 入力テキスト
+   * @returns {Promise<Object>} 階層ツリーオブジェクト
+   */
+  async extractMindMapFromText(rawText) {
+    if (!rawText || !rawText.trim()) return null;
+    const apiKey = this.state.data.settings?.geminiApiKey;
+    const model = this.state.data.settings?.geminiModel || 'gemini-3.6-flash';
+
+    if (apiKey && apiKey.trim().length > 10) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const prompt = `以下のテキスト（会議議事録、ChatGPTの会話ログ、ブレインストーミングメモなど）を詳細に分析し、
+思考マインドマップ用の階層ツリー構造（JSON）を構築してください。
+
+【テキスト】:
+${rawText}
+
+【厳格な出力フォーマット（JSON形式のみ）】:
+必ず以下の構造を持つJSONオブジェクトのみを出力してください（マークダウンの\`\`\`jsonブロック等も可）：
+{
+  "title": "全体のメインテーマ（20文字以内）",
+  "content": "全体の総括・要約メモ",
+  "nodeType": "Goal",
+  "status": "None",
+  "tags": ["AI抽出"],
+  "children": [
+    {
+      "title": "主要トピック1（15文字以内、簡潔な要約）",
+      "content": "詳細メモや補足説明",
+      "nodeType": "Idea",
+      "status": "None",
+      "tags": [],
+      "children": [
+        {
+          "title": "サブトピック（15文字以内）",
+          "content": "詳細・理由など",
+          "nodeType": "Task",
+          "status": "None",
+          "children": []
+        }
+      ]
+    }
+  ]
+}
+※ノードのタイトルは絵文字を含めず、簡潔で本質を突いた日本語フレーズにしてください。
+※nodeTypeは Goal, Idea, Task, Problem, Fact, Question, Inspiration, Reference から選択してください。`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.3
+            }
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          const candidateText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText) {
+            const cleanJson = candidateText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/, '').trim();
+            const parsed = JSON.parse(cleanJson);
+            if (parsed.title) return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('AI構造化APIエラー、ローカルルールベースでパース:', e);
+      }
+    }
+
+    // APIキーがない場合またはエラー時のローカルフォールバック
+    return this.fallbackExtractMindMap(rawText);
+  }
+
+  /**
+   * 🛡️ APIキーがない場合のローカル階層抽出フォールバック
+   */
+  fallbackExtractMindMap(rawText) {
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return null;
+
+    const firstLine = lines[0].replace(/^[#\-*\d.]+\s*/, '').substring(0, 30);
+    const rootTitle = firstLine || 'インポート思考テーマ';
+
+    const children = [];
+    for (let i = 1; i < Math.min(lines.length, 8); i++) {
+      const line = lines[i];
+      if (line.length < 2) continue;
+      const cleanLine = line.replace(/^[#\-*\d.]+\s*/, '');
+      const parts = cleanLine.split(/[:：、。]/);
+      const title = parts[0].substring(0, 20);
+      const content = parts.slice(1).join(' ').trim();
+      children.push({
+        title: title || cleanLine.substring(0, 20),
+        content: content || cleanLine,
+        nodeType: 'Idea',
+        status: 'None',
+        tags: [],
+        children: []
+      });
+    }
+
+    return {
+      title: rootTitle,
+      content: 'テキストから自動抽出された思考マップです。',
+      nodeType: 'Goal',
+      status: 'None',
+      tags: ['自動生成'],
+      children: children.length > 0 ? children : [{ title: '主要論点', content: rawText.substring(0, 100), nodeType: 'Idea', children: [] }]
+    };
+  }
 }
 
 window.AIEngine = AIEngine;

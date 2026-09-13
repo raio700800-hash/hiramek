@@ -68,11 +68,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnZoomOut = document.getElementById('btn-zoom-out');
   const btnFitView = document.getElementById('btn-fit-view');
   const btnTidy = document.getElementById('btn-tidy');
+  const btnImport = document.getElementById('btn-import');
   const btnExport = document.getElementById('btn-export');
   const btnSettings = document.getElementById('btn-settings');
   const btnNewTopic = document.getElementById('btn-new-topic');
   const selectLayoutMode = document.getElementById('select-layout-mode');
   const btnAddFrame = document.getElementById('btn-add-frame');
+
+  // 📥 インポートモーダル関連
+  const importModal = document.getElementById('import-modal');
+  const closeImportModalBtn = document.getElementById('close-import-modal-btn');
+  const cancelImportModalBtn = document.getElementById('cancel-import-modal-btn');
+  const executeImportBtn = document.getElementById('execute-import-btn');
+  const importTextarea = document.getElementById('import-textarea');
+  const importDetectedBadge = document.getElementById('import-detected-badge');
+  const importTabBtns = document.querySelectorAll('.import-tab-btn');
+
+  // 📤 エクスポートモーダル関連
+  const exportModal = document.getElementById('export-modal');
+  const closeExportModalBtn = document.getElementById('close-export-modal-btn');
+  const cancelExportModalBtn = document.getElementById('cancel-export-modal-btn');
+  const exportTabBtns = document.querySelectorAll('.export-tab-btn');
+  const exportOptIncludeDetails = document.getElementById('export-opt-include-details');
+  const exportOptAdoptedOnly = document.getElementById('export-opt-adopted-only');
+  const exportPreviewTextarea = document.getElementById('export-preview-textarea');
+  const btnExportCopy = document.getElementById('btn-export-copy');
+  const btnExportDownload = document.getElementById('btn-export-download');
 
   // ☀️/🌙 テーマ切替ボタン（ホワイトボード / 黒板）
   const btnToggleTheme = document.getElementById('btn-toggle-theme');
@@ -1108,36 +1129,259 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnExport.addEventListener('click', () => {
-    let md = `# 思考マインドマップ エクスポート\n\n`;
-    md += `作成日時: ${new Date().toLocaleString()}\n\n`;
-    md += `## 📋 思考ノードツリー\n\n`;
+  // ===========================================================================
+  // 📥 思考データの読み込み (インポートモーダル制御)
+  // ===========================================================================
+  let currentImportFormat = 'auto';
 
-    const tagMap = {};
-    (state.data.customTags || []).forEach(t => { tagMap[t.id] = t.name; });
-
-    Object.values(state.data.nodes).forEach(n => {
-      const indent = n.parentId ? '  - ' : '- ';
-      const typeIcons = {
-        Idea: '💡', Task: '📋', Problem: '⚠️', Fact: '📌',
-        Question: '❓', Goal: '🎯', Inspiration: '✨', Reference: '📚'
-      };
-      const icon = typeIcons[n.nodeType] || '💡';
-      const statusText = (n.status && n.status !== 'None') ? ` [${n.status}]` : '';
-      const tagsText = (n.tags && n.tags.length > 0)
-        ? ` ${n.tags.map(tid => `🏷️#${tagMap[tid] || tid}`).join(' ')}`
-        : '';
-
-      md += `${indent}**${icon} ${n.title}**${statusText}${tagsText}\n`;
-      if (n.content) md += `    - 詳細・メモ: ${n.content}\n`;
+  const updateImportFormatUI = (format) => {
+    currentImportFormat = format;
+    importTabBtns.forEach(btn => {
+      if (btn.dataset.format === format) {
+        btn.className = 'import-tab-btn px-2.5 py-1.5 font-semibold rounded-lg text-indigo-700 bg-indigo-50 border border-indigo-200 transition-all cursor-pointer';
+      } else {
+        btn.className = 'import-tab-btn px-2.5 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer';
+      }
     });
+  };
 
-    navigator.clipboard.writeText(md).then(() => {
-      alert('マインドマップのMarkdownテキストをクリップボードにコピーしました！\nNotionやObsidianへそのまま貼り付けられます。');
-    }).catch(() => {
-      alert('Markdownを出力しました。');
+  const detectAndReflectFormat = () => {
+    const val = importTextarea.value.trim();
+    if (!val) {
+      importDetectedBadge.textContent = '形式未判定';
+      importDetectedBadge.className = 'px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-500 rounded-full border border-slate-200';
+      return;
+    }
+    const detected = state.detectTextFormat(val);
+    const badgeConfig = {
+      json: { text: '💾 JSON検出', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+      mermaid: { text: '📊 Mermaid検出', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+      markdown: { text: '📝 箇条書き検出', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+      ai: { text: '✨ 会話文・長文検出', color: 'bg-purple-100 text-purple-700 border-purple-200' }
+    };
+    const conf = badgeConfig[detected] || badgeConfig.markdown;
+    importDetectedBadge.textContent = conf.text;
+    importDetectedBadge.className = `px-2 py-0.5 text-[10px] font-semibold rounded-full border ${conf.color}`;
+  };
+
+  if (btnImport) {
+    btnImport.addEventListener('click', () => {
+      importTextarea.value = '';
+      updateImportFormatUI('auto');
+      detectAndReflectFormat();
+      importModal.classList.remove('hidden');
+      setTimeout(() => importTextarea.focus(), 100);
+    });
+  }
+
+  if (closeImportModalBtn) {
+    closeImportModalBtn.addEventListener('click', () => importModal.classList.add('hidden'));
+  }
+  if (cancelImportModalBtn) {
+    cancelImportModalBtn.addEventListener('click', () => importModal.classList.add('hidden'));
+  }
+
+  importTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      updateImportFormatUI(btn.dataset.format);
     });
   });
+
+  if (importTextarea) {
+    importTextarea.addEventListener('input', detectAndReflectFormat);
+  }
+
+  if (executeImportBtn) {
+    executeImportBtn.addEventListener('click', async () => {
+      const text = importTextarea.value.trim();
+      if (!text) {
+        alert('テキストを貼り付けてください。');
+        return;
+      }
+
+      // 取り込みモード取得（'replace' または 'append'）
+      const selectedRadio = document.querySelector('input[name="import-mode"]:checked');
+      const mode = selectedRadio ? selectedRadio.value : 'replace';
+
+      // 判定形式の決定（autoの場合は検出結果）
+      const effectiveFormat = currentImportFormat === 'auto' ? state.detectTextFormat(text) : currentImportFormat;
+
+      executeImportBtn.disabled = true;
+      const origBtnHtml = executeImportBtn.innerHTML;
+      executeImportBtn.innerHTML = `<span>⚡ 解析・生成中...</span>`;
+
+      try {
+        let tree = null;
+        if (effectiveFormat === 'json') {
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed.state) {
+              state.data = parsed.state;
+              state.saveState();
+              state.notify('new_topic_started');
+              importModal.classList.add('hidden');
+              canvas.fitView();
+              alert('JSONから完全復元しました！');
+              return;
+            } else {
+              tree = parsed;
+            }
+          } catch (err) {
+            alert('JSONの解析に失敗しました。形式をご確認ください。');
+            return;
+          }
+        } else if (effectiveFormat === 'mermaid') {
+          tree = state.parseMermaid(text);
+        } else if (effectiveFormat === 'markdown') {
+          tree = state.parseIndentedText(text);
+        } else if (effectiveFormat === 'ai') {
+          tree = await ai.extractMindMapFromText(text);
+        }
+
+        if (!tree) {
+          // フォールバックで箇条書きとしてパース
+          tree = state.parseIndentedText(text);
+        }
+
+        if (!tree) {
+          alert('思考構造を解析できませんでした。テキスト内容をご確認ください。');
+          return;
+        }
+
+        const success = state.importTreeData(tree, { mode, parentId: state.data.selectedNodeId });
+        if (success) {
+          importModal.classList.add('hidden');
+          setTimeout(() => canvas.fitView(), 150);
+          alert(mode === 'replace' ? '新しいマインドマップとして読み込みました！' : '選択ノードに思考ツリーを追加しました！');
+        } else {
+          alert('インポートに失敗しました。');
+        }
+      } catch (err) {
+        console.error('インポート実行エラー:', err);
+        alert('エラーが発生しました: ' + (err.message || err));
+      } finally {
+        executeImportBtn.disabled = false;
+        executeImportBtn.innerHTML = origBtnHtml;
+      }
+    });
+  }
+
+  // ===========================================================================
+  // 📤 思考データの書き出し (エクスポートモーダル制御)
+  // ===========================================================================
+  let currentExportType = 'aicontext';
+
+  const updateExportPreview = () => {
+    const includeDetails = exportOptIncludeDetails ? exportOptIncludeDetails.checked : true;
+    const adoptedOnly = exportOptAdoptedOnly ? exportOptAdoptedOnly.checked : false;
+
+    let output = '';
+    if (currentExportType === 'aicontext') {
+      output = state.exportAsAIContext({ includeDetails, adoptedOnly });
+    } else if (currentExportType === 'mermaid') {
+      output = state.exportAsMermaid({ adoptedOnly });
+    } else if (currentExportType === 'notion') {
+      output = state.exportAsNotionMarkdown({ includeDetails, adoptedOnly });
+    } else if (currentExportType === 'json') {
+      output = state.exportAsJSON();
+    }
+
+    if (exportPreviewTextarea) {
+      exportPreviewTextarea.value = output;
+    }
+  };
+
+  const updateExportTabUI = (type) => {
+    currentExportType = type;
+    exportTabBtns.forEach(btn => {
+      if (btn.dataset.exportType === type) {
+        btn.className = 'export-tab-btn px-3 py-1.5 font-bold rounded-lg text-amber-800 bg-amber-50 border border-amber-200 transition-all cursor-pointer';
+      } else {
+        btn.className = 'export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer';
+      }
+    });
+    updateExportPreview();
+  };
+
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      updateExportTabUI('aicontext');
+      exportModal.classList.remove('hidden');
+    });
+  }
+
+  if (closeExportModalBtn) {
+    closeExportModalBtn.addEventListener('click', () => exportModal.classList.add('hidden'));
+  }
+  if (cancelExportModalBtn) {
+    cancelExportModalBtn.addEventListener('click', () => exportModal.classList.add('hidden'));
+  }
+
+  exportTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      updateExportTabUI(btn.dataset.exportType);
+    });
+  });
+
+  if (exportOptIncludeDetails) {
+    exportOptIncludeDetails.addEventListener('change', updateExportPreview);
+  }
+  if (exportOptAdoptedOnly) {
+    exportOptAdoptedOnly.addEventListener('change', updateExportPreview);
+  }
+
+  // クリップボードにコピー
+  if (btnExportCopy) {
+    btnExportCopy.addEventListener('click', () => {
+      const content = exportPreviewTextarea.value;
+      if (!content) return;
+      navigator.clipboard.writeText(content).then(() => {
+        const origText = btnExportCopy.innerHTML;
+        btnExportCopy.innerHTML = `<span>✔️ コピー完了！</span>`;
+        btnExportCopy.classList.replace('bg-amber-500', 'bg-emerald-600');
+        btnExportCopy.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-700');
+        setTimeout(() => {
+          btnExportCopy.innerHTML = origText;
+          btnExportCopy.classList.replace('bg-emerald-600', 'bg-amber-500');
+          btnExportCopy.classList.replace('hover:bg-emerald-700', 'hover:bg-amber-600');
+        }, 2000);
+      }).catch(err => {
+        alert('コピーに失敗しました: ' + err);
+      });
+    });
+  }
+
+  // ファイルとして保存（ダウンロード）
+  if (btnExportDownload) {
+    btnExportDownload.addEventListener('click', () => {
+      const content = exportPreviewTextarea.value;
+      if (!content) return;
+
+      const rootNode = Object.values(state.data.nodes).find(n => !n.parentId) || { title: 'hiramek' };
+      const safeTitle = (rootNode.title || 'hiramek').replace(/[\\/:*?"<>| ]/g, '_').substring(0, 20);
+      const dateStr = new Date().toISOString().slice(0, 10);
+
+      let filename = `hiramek-${safeTitle}-${dateStr}.md`;
+      let mimeType = 'text/markdown;charset=utf-8';
+
+      if (currentExportType === 'json') {
+        filename = `hiramek-${safeTitle}-${dateStr}.json`;
+        mimeType = 'application/json;charset=utf-8';
+      } else if (currentExportType === 'mermaid') {
+        filename = `hiramek-${safeTitle}-${dateStr}.mmd`;
+      }
+
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
 
   // ===========================================================================
   // 🌱 新しい題材を始めるモーダル

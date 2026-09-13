@@ -737,6 +737,7 @@ class MindMapState {
   }
 
   saveState() {
+    if (typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
@@ -745,6 +746,10 @@ class MindMapState {
   }
 
   loadState() {
+    if (typeof localStorage === 'undefined') {
+      this.data = this.getDefaultState();
+      return;
+    }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -804,6 +809,563 @@ class MindMapState {
     if (stateChanged) {
       this.saveState();
     }
+  }
+
+  // ===========================================================================
+  // 🔍 形式自動判別 (detectTextFormat)
+  // ===========================================================================
+  detectTextFormat(text) {
+    if (!text || typeof text !== 'string') return 'markdown';
+    const trimmed = text.trim();
+
+    // 1. JSONの判定
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.nodes || parsed.title || parsed.rootId || parsed.state) return 'json';
+      } catch (e) {}
+    }
+
+    // 2. Mermaidの判定
+    if (/^\s*mindmap/im.test(trimmed) || /^\s*(graph|flowchart)\s+[A-Z]{2}/im.test(trimmed) || /-->/.test(trimmed)) {
+      return 'mermaid';
+    }
+
+    // 3. Markdown/箇条書きの判定（行頭が -, *, +, 数字., # など）
+    const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
+    const bulletCount = lines.filter(l => /^\s*([-*+]|\d+\.|#{1,6})\s+/.test(l)).length;
+    if (bulletCount >= Math.max(1, Math.floor(lines.length * 0.25))) {
+      return 'markdown';
+    }
+
+    // 4. 自然文・会話ログ（長文、複数行）
+    if (lines.length > 1 || trimmed.length > 50) {
+      return 'ai';
+    }
+
+    return 'markdown';
+  }
+
+  // ===========================================================================
+  // 📝 インデント箇条書きパーサー (parseIndentedText)
+  // ===========================================================================
+  parseIndentedText(rawText) {
+    if (!rawText || typeof rawText !== 'string') return null;
+    const lines = rawText.split('\n');
+    const parsedLines = [];
+
+    lines.forEach((line) => {
+      if (!line.trim()) return;
+
+      // インデントのスペース数（タブは半角スペース4つに換算）
+      const leadingTabs = (line.match(/^\t+/) || [''])[0].length;
+      const cleanLine = line.replace(/^\t+/, '    '.repeat(leadingTabs));
+      const matchLeading = cleanLine.match(/^(\s*)/);
+      const indentSpaces = matchLeading ? matchLeading[1].length : 0;
+
+      let text = cleanLine.trim();
+
+      // # 見出し記号（# タイトル -> レベル0, ## サブトピック -> レベル1...）
+      const headerMatch = text.match(/^(#{1,6})\s+(.*)$/);
+      let isHeader = false;
+      let headerLevel = 0;
+      if (headerMatch) {
+        isHeader = true;
+        headerLevel = headerMatch[1].length - 1;
+        text = headerMatch[2];
+      }
+
+      // 箇条書き記号の除去 (- , * , + , 1. , etc.)
+      text = text.replace(/^([-*+]|\d+\.)\s+/, '');
+
+      // タスク検出: - [ ] または - [x]
+      let nodeType = 'Idea';
+      let status = 'None';
+      if (/^\[\s\]\s*/.test(text)) {
+        nodeType = 'Task';
+        text = text.replace(/^\[\s\]\s*/, '');
+      } else if (/^\[x\]\s*/i.test(text)) {
+        nodeType = 'Task';
+        status = 'Done';
+        text = text.replace(/^\[x\]\s*/i, '');
+      }
+
+      // 絵文字や特定単語からノード種別を推論
+      if (text.startsWith('💡') || text.startsWith('✨')) nodeType = 'Idea';
+      else if (text.startsWith('📋') || text.startsWith('TODO') || text.startsWith('Task')) nodeType = 'Task';
+      else if (text.startsWith('⚠️') || text.startsWith('❌') || text.startsWith('課題') || text.startsWith('問題')) nodeType = 'Problem';
+      else if (text.startsWith('📌') || text.startsWith('事実') || text.startsWith('Fact')) nodeType = 'Fact';
+      else if (text.startsWith('❓') || text.startsWith('疑問') || text.startsWith('問い')) nodeType = 'Question';
+      else if (text.startsWith('🎯') || text.startsWith('目標') || text.startsWith('Goal')) nodeType = 'Goal';
+
+      // タグの抽出 (#重要, #アイデア など)
+      const tags = [];
+      text = text.replace(/#([\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF_-]+)/g, (m, tag) => {
+        tags.push(tag);
+        return '';
+      }).trim();
+
+      // 詳細メモの分離（例: "タイトル: 詳細メモ"）
+      let content = '';
+      const splitColon = text.split(/[:：]\s+/);
+      if (splitColon.length > 1 && splitColon[0].length < 30 && splitColon[1].length > 10) {
+        text = splitColon[0];
+        content = splitColon.slice(1).join(': ');
+      }
+
+      // ステータス表現の抽出（[採用]、[完了]、[要検討]、[却下]）
+      if (/\[(採用|Adopted)\]/i.test(text)) {
+        status = 'Adopted';
+        text = text.replace(/\[(採用|Adopted)\]/i, '').trim();
+      } else if (/\[(要検討|InReview)\]/i.test(text)) {
+        status = 'InReview';
+        text = text.replace(/\[(要検討|InReview)\]/i, '').trim();
+      } else if (/\[(却下|Rejected)\]/i.test(text)) {
+        status = 'Rejected';
+        text = text.replace(/\[(却下|Rejected)\]/i, '').trim();
+      } else if (/\[(完了|Done)\]/i.test(text)) {
+        status = 'Done';
+        text = text.replace(/\[(完了|Done)\]/i, '').trim();
+      }
+
+      const calculatedDepth = isHeader ? headerLevel : Math.floor(indentSpaces / 2);
+
+      parsedLines.push({
+        rawIndent: indentSpaces,
+        depth: calculatedDepth,
+        title: cleanNodeTitle(text) || 'ノード',
+        content: content,
+        nodeType: nodeType,
+        status: status,
+        tags: tags,
+        children: []
+      });
+    });
+
+    if (parsedLines.length === 0) return null;
+
+    // スタックを使って親子ツリー構造を構築
+    const rootNodes = [];
+    const stack = [];
+
+    parsedLines.forEach((item) => {
+      const node = {
+        title: item.title,
+        content: item.content,
+        nodeType: item.nodeType,
+        status: item.status,
+        tags: item.tags,
+        children: []
+      };
+
+      while (stack.length > 0 && stack[stack.length - 1].depth >= item.depth) {
+        stack.pop();
+      }
+
+      if (stack.length === 0) {
+        rootNodes.push(node);
+      } else {
+        stack[stack.length - 1].node.children.push(node);
+      }
+
+      stack.push({ node, depth: item.depth });
+    });
+
+    if (rootNodes.length === 1) {
+      return rootNodes[0];
+    } else {
+      return {
+        title: 'インポートした思考テーマ',
+        content: '外部から読み込まれた思考構造です。',
+        nodeType: 'Goal',
+        status: 'None',
+        tags: [],
+        children: rootNodes
+      };
+    }
+  }
+
+  // ===========================================================================
+  // 📊 Mermaidパーサー (parseMermaid)
+  // ===========================================================================
+  parseMermaid(rawText) {
+    if (!rawText || typeof rawText !== 'string') return null;
+    const lines = rawText.split('\n');
+    const parsedLines = [];
+
+    for (let line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (/^\s*mindmap/i.test(trimmed)) continue;
+      if (/^```/.test(trimmed)) continue;
+
+      // インデント深さ計算
+      const leadingTabs = (line.match(/^\t+/) || [''])[0].length;
+      const cleanLine = line.replace(/^\t+/, '    '.repeat(leadingTabs));
+      const indentSpaces = (cleanLine.match(/^(\s*)/) || [''])[0].length;
+
+      let text = trimmed;
+
+      // root((タイトル)) や ((タイトル)), [タイトル], (タイトル), {{"タイトル"}} 等の括弧除去
+      text = text.replace(/^root\s*/i, '');
+      text = text.replace(/^[(\[{]{1,2}["']?/, '');
+      text = text.replace(/["']?[)\]}]{1,2}$/, '');
+      text = text.trim();
+
+      if (!text) continue;
+
+      parsedLines.push({
+        depth: Math.floor(indentSpaces / 2),
+        title: cleanNodeTitle(text) || 'ノード',
+        content: '',
+        nodeType: 'Idea',
+        status: 'None',
+        tags: [],
+        children: []
+      });
+    }
+
+    if (parsedLines.length === 0) return null;
+
+    const rootNodes = [];
+    const stack = [];
+
+    parsedLines.forEach((item) => {
+      const node = {
+        title: item.title,
+        content: item.content,
+        nodeType: item.nodeType,
+        status: item.status,
+        tags: item.tags,
+        children: []
+      };
+
+      while (stack.length > 0 && stack[stack.length - 1].depth >= item.depth) {
+        stack.pop();
+      }
+
+      if (stack.length === 0) {
+        rootNodes.push(node);
+      } else {
+        stack[stack.length - 1].node.children.push(node);
+      }
+
+      stack.push({ node, depth: item.depth });
+    });
+
+    if (rootNodes.length === 1) {
+      return rootNodes[0];
+    } else {
+      return {
+        title: 'Mermaidインポート',
+        content: 'Mermaidから読み込まれた思考構造です。',
+        nodeType: 'Goal',
+        status: 'None',
+        tags: [],
+        children: rootNodes
+      };
+    }
+  }
+
+  // ===========================================================================
+  // 📥 ツリーデータのインポート反映 (importTreeData)
+  // ===========================================================================
+  importTreeData(treeRoot, options = {}) {
+    if (!treeRoot) return false;
+    const mode = options.mode || 'replace';
+    this.recordHistory();
+
+    const tagMap = {};
+    (this.data.customTags || []).forEach(t => { tagMap[t.name] = t.id; });
+
+    const ensureTag = (tagName) => {
+      if (!tagName) return null;
+      if (tagMap[tagName]) return tagMap[tagName];
+      const newTagId = 'tag-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5);
+      const colors = ['rose', 'amber', 'blue', 'purple', 'emerald'];
+      const color = colors[Object.keys(tagMap).length % colors.length];
+      if (!this.data.customTags) this.data.customTags = [];
+      this.data.customTags.push({ id: newTagId, name: tagName, color });
+      tagMap[tagName] = newTagId;
+      return newTagId;
+    };
+
+    if (mode === 'replace') {
+      // 画面全体を新規マップとして初期化
+      const rootId = 'root-1';
+      const rootTitle = cleanNodeTitle(treeRoot.title) || 'インポートテーマ';
+      this.data.nodes = {
+        [rootId]: {
+          id: rootId,
+          parentId: null,
+          title: rootTitle,
+          content: treeRoot.content || 'インポートされたマインドマップです。',
+          status: treeRoot.status || 'None',
+          nodeType: treeRoot.nodeType || 'Goal',
+          tags: (treeRoot.tags || []).map(ensureTag).filter(Boolean),
+          source: 'user',
+          roleTag: 'Goal',
+          originPrompt: 'インポートより作成',
+          aiLock: false,
+          color: 'default',
+          group: '',
+          x: 80,
+          y: 200,
+          createdAt: new Date().toISOString()
+        }
+      };
+      this.data.frames = {};
+      this.data.selectedNodeId = rootId;
+
+      // 再帰的に子孫ノードを追加
+      const addChildrenRecursive = (parentNode, childrenList) => {
+        if (!childrenList || childrenList.length === 0) return;
+        const total = childrenList.length;
+        const gap = 84;
+        const startY = (parentNode.y || 200) - ((total - 1) * gap / 2);
+        const nextX = (parentNode.x || 100) + 320;
+
+        childrenList.forEach((childItem, index) => {
+          const childId = 'node-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+          const childNode = {
+            id: childId,
+            parentId: parentNode.id,
+            title: cleanNodeTitle(childItem.title) || 'ノード',
+            content: childItem.content || '',
+            status: childItem.status || 'None',
+            nodeType: childItem.nodeType || 'Idea',
+            tags: (childItem.tags || []).map(ensureTag).filter(Boolean),
+            source: 'user',
+            roleTag: childItem.nodeType || 'Idea',
+            originPrompt: 'インポート',
+            aiLock: false,
+            color: 'default',
+            group: '',
+            x: nextX,
+            y: startY + (index * gap),
+            createdAt: new Date().toISOString()
+          };
+          this.data.nodes[childId] = childNode;
+          addChildrenRecursive(childNode, childItem.children);
+        });
+      };
+
+      addChildrenRecursive(this.data.nodes[rootId], treeRoot.children);
+      this.saveState();
+      this.notify('new_topic_started');
+      return true;
+    } else {
+      // 選択ノードの子ノードとして追加
+      const targetParentId = options.parentId || this.data.selectedNodeId || Object.keys(this.data.nodes)[0];
+      const targetParent = this.data.nodes[targetParentId];
+      // 仮想ルート（複数ルート行を束ねた親ノード）の場合はその子孫を並べ、それ以外はtreeRoot自身を追加
+      const isVirtualRoot = treeRoot.title === 'インポートした思考テーマ' || treeRoot.title === 'Mermaidインポート';
+      const itemsToAdd = (isVirtualRoot && treeRoot.children && treeRoot.children.length > 0)
+        ? treeRoot.children
+        : [treeRoot];
+
+      const addRecursive = (parentNode, childItem, index, total) => {
+        const childId = 'node-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+        const gap = 84;
+        const startY = (parentNode.y || 200) - ((total - 1) * gap / 2);
+        const childNode = {
+          id: childId,
+          parentId: parentNode.id,
+          title: cleanNodeTitle(childItem.title) || 'ノード',
+          content: childItem.content || '',
+          status: childItem.status || 'None',
+          nodeType: childItem.nodeType || 'Idea',
+          tags: (childItem.tags || []).map(ensureTag).filter(Boolean),
+          source: 'user',
+          roleTag: childItem.nodeType || 'Idea',
+          originPrompt: 'インポート追加',
+          aiLock: false,
+          color: 'default',
+          group: '',
+          x: (parentNode.x || 100) + 320,
+          y: startY + (index * gap),
+          createdAt: new Date().toISOString()
+        };
+        this.data.nodes[childId] = childNode;
+
+        if (childItem.children && childItem.children.length > 0) {
+          childItem.children.forEach((grandChild, gIdx) => {
+            addRecursive(childNode, grandChild, gIdx, childItem.children.length);
+          });
+        }
+        return childId;
+      };
+
+      const addedIds = [];
+      itemsToAdd.forEach((item, idx) => {
+        const id = addRecursive(targetParent, item, idx, itemsToAdd.length);
+        addedIds.push(id);
+      });
+
+      this.data.selectedNodeId = addedIds[0] || targetParentId;
+      this.saveState();
+      this.notify('batch_nodes_added', { parentId: targetParentId, nodeIds: addedIds });
+      return true;
+    }
+  }
+
+  // ===========================================================================
+  // 📤 エクスポート: AI Context (ChatGPT / Gemini / COLOCOS)
+  // ===========================================================================
+  exportAsAIContext(options = { includeDetails: true, adoptedOnly: false }) {
+    const rootNode = Object.values(this.data.nodes).find(n => !n.parentId) || Object.values(this.data.nodes)[0];
+    if (!rootNode) return '';
+
+    const tagMap = {};
+    (this.data.customTags || []).forEach(t => { tagMap[t.id] = t.name; });
+
+    let md = `# 【思考マインドマップ Context】${rootNode.title}\n\n`;
+    md += `> このドキュメントは、マインドマップアプリ「Hiramek」で整理・構造化された思考状態です。\n`;
+    md += `> 以下の論点構造と決定事項を前提（Context）として、回答・開発を進めてください。\n\n`;
+
+    md += `## 🎯 全体テーマ: ${rootNode.title}\n`;
+    if (rootNode.content) md += `概要: ${rootNode.content}\n`;
+    md += `\n## 📋 構造化ツリーと決定事項\n\n`;
+
+    const statusLabels = {
+      Adopted: '✅ [採用・確定]',
+      InReview: '🔍 [要検討]',
+      Priority: '🔥 [最優先]',
+      Done: '✔️ [完了]',
+      Rejected: '❌ [却下・見送り]'
+    };
+
+    const typeIcons = {
+      Idea: '💡 アイデア', Task: '📋 タスク', Problem: '⚠️ 課題', Fact: '📌 事実',
+      Question: '❓ 問い', Goal: '🎯 目標', Inspiration: '✨ 着想', Reference: '📚 参考'
+    };
+
+    const traverse = (nodeId, depth) => {
+      const node = this.data.nodes[nodeId];
+      if (!node) return;
+
+      if (options.adoptedOnly && node.status !== 'Adopted' && node.status !== 'Priority' && node.id !== rootNode.id) {
+        return;
+      }
+
+      const indent = '  '.repeat(depth);
+      const icon = typeIcons[node.nodeType] || '💡';
+      const statusText = statusLabels[node.status] ? ` ${statusLabels[node.status]}` : '';
+      const tagsText = (node.tags && node.tags.length > 0)
+        ? ` ${node.tags.map(t => `#${tagMap[t] || t}`).join(' ')}`
+        : '';
+
+      md += `${indent}- **${icon}: ${node.title}**${statusText}${tagsText}\n`;
+      if (options.includeDetails && node.content) {
+        md += `${indent}  - メモ・詳細: ${node.content}\n`;
+      }
+
+      const children = Object.values(this.data.nodes).filter(n => n.parentId === nodeId);
+      children.forEach(child => traverse(child.id, depth + 1));
+    };
+
+    const rootChildren = Object.values(this.data.nodes).filter(n => n.parentId === rootNode.id);
+    if (rootChildren.length === 0) {
+      md += `- (ノードはありません)\n`;
+    } else {
+      rootChildren.forEach(child => traverse(child.id, 0));
+    }
+
+    return md;
+  }
+
+  // ===========================================================================
+  // 📤 エクスポート: Mermaid (Obsidian / Notion 図解)
+  // ===========================================================================
+  exportAsMermaid(options = { adoptedOnly: false }) {
+    const rootNode = Object.values(this.data.nodes).find(n => !n.parentId) || Object.values(this.data.nodes)[0];
+    if (!rootNode) return '';
+
+    let out = '```mermaid\nmindmap\n';
+    out += `  root((${rootNode.title.replace(/[()\[\]{}"']/g, '')}))\n`;
+
+    const traverse = (nodeId, depth) => {
+      const node = this.data.nodes[nodeId];
+      if (!node) return;
+
+      if (options.adoptedOnly && node.status !== 'Adopted' && node.status !== 'Priority' && node.id !== rootNode.id) {
+        return;
+      }
+
+      const indent = '  '.repeat(depth + 2);
+      const safeTitle = node.title.replace(/[()\[\]{}"']/g, '').trim();
+      if (safeTitle) {
+        out += `${indent}${safeTitle}\n`;
+      }
+
+      const children = Object.values(this.data.nodes).filter(n => n.parentId === nodeId);
+      children.forEach(child => traverse(child.id, depth + 1));
+    };
+
+    const rootChildren = Object.values(this.data.nodes).filter(n => n.parentId === rootNode.id);
+    rootChildren.forEach(child => traverse(child.id, 0));
+    out += '```\n';
+    return out;
+  }
+
+  // ===========================================================================
+  // 📤 エクスポート: Notion / Obsidian用 Markdown
+  // ===========================================================================
+  exportAsNotionMarkdown(options = { includeDetails: true, adoptedOnly: false }) {
+    const rootNode = Object.values(this.data.nodes).find(n => !n.parentId) || Object.values(this.data.nodes)[0];
+    if (!rootNode) return '';
+
+    const tagMap = {};
+    (this.data.customTags || []).forEach(t => { tagMap[t.id] = t.name; });
+
+    let md = `# ${rootNode.title}\n\n`;
+    if (rootNode.content) md += `> ${rootNode.content}\n\n`;
+
+    const typeIcons = {
+      Idea: '💡', Task: '📋', Problem: '⚠️', Fact: '📌',
+      Question: '❓', Goal: '🎯', Inspiration: '✨', Reference: '📚'
+    };
+
+    const traverse = (nodeId, depth) => {
+      const node = this.data.nodes[nodeId];
+      if (!node) return;
+
+      if (options.adoptedOnly && node.status !== 'Adopted' && node.status !== 'Priority' && node.id !== rootNode.id) {
+        return;
+      }
+
+      const indent = '  '.repeat(depth);
+      const icon = typeIcons[node.nodeType] || '💡';
+      const statusText = (node.status && node.status !== 'None') ? ` [${node.status}]` : '';
+      const tagsText = (node.tags && node.tags.length > 0)
+        ? ` ${node.tags.map(t => `#${tagMap[t] || t}`).join(' ')}`
+        : '';
+
+      md += `${indent}- **${icon} ${node.title}**${statusText}${tagsText}\n`;
+      if (options.includeDetails && node.content) {
+        md += `${indent}  - ${node.content}\n`;
+      }
+
+      const children = Object.values(this.data.nodes).filter(n => n.parentId === nodeId);
+      children.forEach(child => traverse(child.id, depth + 1));
+    };
+
+    const rootChildren = Object.values(this.data.nodes).filter(n => n.parentId === rootNode.id);
+    rootChildren.forEach(child => traverse(child.id, 0));
+
+    return md;
+  }
+
+  // ===========================================================================
+  // 📤 エクスポート: 完全復元用 JSON
+  // ===========================================================================
+  exportAsJSON() {
+    return JSON.stringify({
+      app: 'Hiramek',
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      state: this.data
+    }, null, 2);
   }
 }
 

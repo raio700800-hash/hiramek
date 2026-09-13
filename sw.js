@@ -6,7 +6,7 @@
  * HTML、CSS、JavaScriptなどのファイルを自動キャッシュします。
  */
 
-const CACHE_NAME = 'mindmap-app-cache-v15';
+const CACHE_NAME = 'hiramek-cache-v16';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

@@ -1,17 +1,18 @@
 {
-  "name": "思考マインドマップ — AI連動型思考整理アプリ",
-  "short_name": "思考マップ",
-  "description": "AIと対話しながらアイデアを網羅的にツリー化し、ワンクリックで整理できるマインドマップアプリ",
+  "name": "Hiramek (ヒラメック) — ひらめきを構造化する思考マインドマップ",
+  "short_name": "Hiramek",
+  "description": "ChatGPTやNotion、Obsidianと連動し、アイデアを網羅的にツリー化・整理する次世代マインドマップPWA",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#f59e0b",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23f59e0b'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white'>🧠</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23f59e0b'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white'>💡</text></svg>",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
 }
+
