@@ -114,6 +114,7 @@ class MindMapState {
         }
       ],
       settings: {
+        userName: 'ミル造', // ユーザーの表示名
         geminiApiKey: '',
         geminiModel: 'gemini-3.6-flash',
         theme: 'whiteboard', // 'whiteboard' (ホワイトボードモード) または 'chalkboard' (黒板モード)
@@ -734,6 +735,75 @@ class MindMapState {
     this.notify('custom_tag_deleted', { tagId });
   }
 
+  /**
+   * 📷 ノードとチャットメッセージの画像を双方向で安全に削除（完全同期）
+   */
+  removeNodeImage(nodeId) {
+    const node = this.data.nodes[nodeId];
+    if (!node) return;
+    this.recordHistory();
+    node.image = null;
+
+    // チャット履歴でそのノードに紐付く画像もクリア（完全双方向同期！）
+    if (this.data.messages && Array.isArray(this.data.messages)) {
+      this.data.messages.forEach(m => {
+        if (m.linkedNodeIds && m.linkedNodeIds.includes(nodeId) && m.image) {
+          m.image = null;
+        }
+      });
+    }
+
+    this.saveState();
+    this.notify('node_image_deleted', { nodeId });
+    this.notify('node_updated', { nodeId });
+  }
+
+  /**
+   * 📷 ノードへの画像設定（1ノードにつき最大1枚制限・チャット履歴上書き同期）
+   */
+  setNodeImage(nodeId, imageDataUrl) {
+    const node = this.data.nodes[nodeId];
+    if (!node) return;
+    this.recordHistory();
+    node.image = imageDataUrl;
+
+    // チャット履歴にすでにこのノードの画像メッセージがあるか確認
+    let existingMsg = null;
+    if (this.data.messages && Array.isArray(this.data.messages)) {
+      for (let i = this.data.messages.length - 1; i >= 0; i--) {
+        const m = this.data.messages[i];
+        if (m.linkedNodeIds && m.linkedNodeIds.includes(nodeId) && (m.image || (m.text && m.text.includes('参照画像')))) {
+          existingMsg = m;
+          break;
+        }
+      }
+    }
+
+    const currentUserName = this.data.settings?.userName || 'ミル造';
+
+    if (existingMsg) {
+      // 既存メッセージを最新画像に上書き（チャット欄に画像メッセージが無限増殖するのを防止！）
+      existingMsg.image = imageDataUrl;
+      existingMsg.text = `📷 「${node.title || 'ノード'}」の参照画像を更新しました`;
+      existingMsg.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      // 初めての画像添付メッセージを作成
+      const msg = {
+        id: 'msg-' + Date.now(),
+        sender: 'user',
+        text: `📷 「${node.title || 'ノード'}」に参照画像を添付しました`,
+        linkedNodeIds: [nodeId],
+        image: imageDataUrl,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      this.data.messages.push(msg);
+    }
+
+    this.saveState();
+    this.notify('node_image_updated', { nodeId, image: imageDataUrl });
+    this.notify('node_updated', { nodeId });
+  }
+
   selectNode(nodeId) {
     if (this.data.nodes[nodeId] && this.data.selectedNodeId !== nodeId) {
       this.data.selectedNodeId = nodeId;
@@ -842,9 +912,13 @@ class MindMapState {
       stateChanged = true;
     }
     if (!this.data.settings) {
-      this.data.settings = { geminiApiKey: '', geminiModel: 'gemini-3.6-flash', theme: 'whiteboard', layoutMode: 'radial-tree' };
+      this.data.settings = { userName: 'ミル造', geminiApiKey: '', geminiModel: 'gemini-3.6-flash', theme: 'whiteboard', layoutMode: 'radial-tree' };
       stateChanged = true;
     } else {
+      if (!this.data.settings.userName) {
+        this.data.settings.userName = 'ミル造';
+        stateChanged = true;
+      }
       if (!this.data.settings.geminiModel) {
         this.data.settings.geminiModel = 'gemini-3.6-flash';
         stateChanged = true;

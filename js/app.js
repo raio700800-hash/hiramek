@@ -212,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsModal = document.getElementById('settings-modal');
   const closeSettingsBtn = document.getElementById('close-settings-btn');
   const saveSettingsBtn = document.getElementById('save-settings-btn');
+  const settingUserNameInput = document.getElementById('setting-user-name-input');
   const apiKeyInput = document.getElementById('gemini-api-key-input');
   const geminiModelSelect = document.getElementById('gemini-model-select');
 
@@ -744,7 +745,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateEditorView(data);
 
-    if (eventType === 'message_added' || eventType === 'state_reset' || eventType === 'undo' || eventType === 'redo' || eventType === 'new_topic_started') {
+    if (eventType === 'message_added' || eventType === 'state_reset' || eventType === 'undo' || eventType === 'redo' || eventType === 'new_topic_started' || eventType === 'node_image_deleted' || eventType === 'node_image_updated') {
+      renderChatMessages(data);
+    }
+
+    if (eventType === 'settings_updated') {
+      const selNode = data.nodes[data.selectedNodeId];
+      renderCustomTags(selNode, data);
       renderChatMessages(data);
     }
 
@@ -872,6 +879,13 @@ document.addEventListener('DOMContentLoaded', () => {
    * 🏷️ ユーザー作成カスタムタグの一覧描画とトグル
    */
   function renderCustomTags(node, data) {
+    // 🏷️ ユーザー名の動的ラベル反映
+    const customTagsLabel = document.getElementById('custom-tags-label');
+    if (customTagsLabel) {
+      const currentUserName = data?.settings?.userName || state.data.settings?.userName || 'ミル造';
+      customTagsLabel.textContent = `🏷️ ${currentUserName}さんのカスタムタグ`;
+    }
+
     if (!customTagsContainer) return;
     customTagsContainer.innerHTML = '';
 
@@ -944,13 +958,13 @@ document.addEventListener('DOMContentLoaded', () => {
   /**
    * 💬 チャット対話履歴の描画とノード同期クリック
    */
-  /**
-   * 💬 チャット対話履歴の描画とノード同期クリック
-   */
   function renderChatMessages(data) {
     chatMessagesElm.innerHTML = '';
+    const currentUserName = data?.settings?.userName || state.data.settings?.userName || 'ミル造';
+
     data.messages.forEach(msg => {
       const isAI = msg.sender === 'ai';
+      const senderName = isAI ? 'AI' : currentUserName;
       const msgDiv = document.createElement('div');
       msgDiv.id = `chat-msg-${msg.id}`;
       msgDiv.className = `chat-msg-item flex gap-2.5 transition-all duration-300 p-2 rounded-2xl cursor-pointer hover:bg-slate-100/80 ${isAI ? 'items-start chat-msg-ai' : 'items-end flex-row-reverse chat-msg-user'}`;
@@ -959,17 +973,23 @@ document.addEventListener('DOMContentLoaded', () => {
       msgDiv.title = 'クリックすると対応する思考ノードへジャンプ＆ハイライトします';
 
       msgDiv.innerHTML = `
-        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 shadow-2xs ${isAI ? 'bg-amber-100 text-amber-800' : 'bg-blue-600 text-white'}">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 shadow-2xs ${isAI ? 'bg-amber-100 text-amber-800' : 'bg-blue-600 text-white'}" title="${isAI ? 'AI' : escapeHtml(senderName)}">
           ${isAI ? '🤖' : '👤'}
         </div>
         <div class="chat-bubble max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-2xs border transition-all duration-300 ${isAI ? 'bg-white border-slate-200 text-slate-800' : 'bg-blue-600 border-blue-600 text-white'}">
+          <!-- 発言者名表示（ミル造さんご要望: ユーザー設定をリアルタイム反映） -->
+          <div class="text-[10px] font-semibold mb-1 opacity-75 flex items-center gap-1 ${isAI ? 'text-amber-700' : 'text-blue-100'}">
+            <span>${isAI ? '🤖 AI' : `👤 ${escapeHtml(senderName)}`}</span>
+          </div>
           <!-- ノード選択時にピカッと光る「✨ このノードを生んだ対話」バッジ -->
           <div class="chat-badge-container hidden mb-1.5">
             <span class="chat-origin-badge">✨ このノードを生んだ対話</span>
           </div>
           <div class="whitespace-pre-wrap">${escapeHtml(msg.text)}</div>
           ${msg.image ? `
-            <div class="chat-image-card my-2 shadow-2xs border border-slate-200/60 rounded-xl overflow-hidden bg-black/5" data-image="${msg.image}" title="クリックで拡大表示">
+            <div class="chat-image-card relative group my-2 shadow-2xs border border-slate-200/60 rounded-xl overflow-hidden bg-black/5" data-image="${msg.image}" title="クリックで拡大表示">
+              <!-- 画像削除ボタン（ノードとチャットの完全双方向同期） -->
+              <button type="button" class="btn-delete-chat-image absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold opacity-80 hover:opacity-100 transition-all z-20" title="画像を削除">×</button>
               <img src="${msg.image}" alt="参照画像" class="rounded-xl">
               <div class="image-zoom-overlay">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
@@ -983,6 +1003,20 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
       `;
+
+      // 🗑️ チャット内の画像カード上の「×」削除ボタン
+      const btnDelChatImg = msgDiv.querySelector('.btn-delete-chat-image');
+      if (btnDelChatImg) {
+        btnDelChatImg.addEventListener('click', (e) => {
+          e.stopPropagation(); // 拡大ライトボックスやノードジャンプを阻止
+          const targetNodeId = (msg.linkedNodeIds && msg.linkedNodeIds[0]) || state.data.selectedNodeId;
+          if (targetNodeId) {
+            if (confirm('この参照画像を削除しますか？\n（ノードとチャット双方から安全に削除されます）')) {
+              state.removeNodeImage(targetNodeId);
+            }
+          }
+        });
+      }
 
       // 🔍 画像クリック時はノードジャンプではなくライトボックスを開く
       const chatImgCard = msgDiv.querySelector('.chat-image-card');
@@ -1205,18 +1239,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!node) return;
 
     compressImageToVGA(file, (compressedDataUrl) => {
-      // 1. ノードにVGA圧縮画像を保存
-      state.updateNode(selId, { image: compressedDataUrl });
+      // 1. ノードに画像保存 ＆ チャット履歴上書き同期（1ノード最大1枚制限・無限増殖防止！）
+      state.setNodeImage(selId, compressedDataUrl);
 
-      // 2. チャット履歴に「画像を添付しました」メッセージを追加（画像プレビュー付き）
-      state.addMessage('user', `📷 「${node.title || 'ノード'}」に参照画像を添付しました`, [selId], { image: compressedDataUrl });
-
-      // 3. エディタプレビュー更新
+      // 2. エディタプレビュー更新
       if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.remove('hidden');
       if (nodeImagePreviewImg) nodeImagePreviewImg.src = compressedDataUrl;
       if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
 
-      // 4. チャット欄の画像インジケーター更新（入力枠内カメラアイコンのドット点灯）
+      // 3. チャット欄の画像インジケーター更新（入力枠内カメラアイコンのドット点灯）
       if (chatAttachedImageBadge) {
         chatAttachedImageBadge.classList.remove('hidden');
         if (chatAttachedImageThumb) chatAttachedImageThumb.src = compressedDataUrl;
@@ -1276,8 +1307,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chatDetachImageBtn.addEventListener('click', () => {
       const selId = state.data.selectedNodeId;
       if (!selId) return;
-      if (confirm('添付されている参照画像を削除しますか？')) {
-        state.updateNode(selId, { image: null });
+      if (confirm('添付されている参照画像を削除しますか？\n（ノードとチャット双方から安全に削除されます）')) {
+        state.removeNodeImage(selId);
         if (chatAttachedImageBadge) chatAttachedImageBadge.classList.add('hidden');
         if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
         if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
@@ -1321,8 +1352,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnDeleteNodeImage.addEventListener('click', () => {
       const selId = state.data.selectedNodeId;
       if (!selId) return;
-      if (confirm('添付されている参照画像を削除しますか？')) {
-        state.updateNode(selId, { image: null });
+      if (confirm('添付されている参照画像を削除しますか？\n（ノードとチャット双方から安全に削除されます）')) {
+        state.removeNodeImage(selId);
         if (chatAttachedImageBadge) chatAttachedImageBadge.classList.add('hidden');
         if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
         if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
@@ -1844,9 +1875,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ===========================================================================
-  // ⚙️ 設定モーダル（Gemini APIキー & AIモデル選択）
+  // ⚙️ 設定モーダル（ユーザー設定、Gemini APIキー & AIモデル選択）
   // ===========================================================================
   btnSettings.addEventListener('click', () => {
+    if (settingUserNameInput) {
+      settingUserNameInput.value = state.data.settings?.userName || 'ミル造';
+    }
     apiKeyInput.value = state.data.settings?.geminiApiKey || '';
     if (geminiModelSelect) {
       geminiModelSelect.value = state.data.settings?.geminiModel || 'gemini-3.6-flash';
@@ -1857,11 +1891,12 @@ document.addEventListener('DOMContentLoaded', () => {
   closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
   saveSettingsBtn.addEventListener('click', () => {
+    const userName = settingUserNameInput ? (settingUserNameInput.value.trim() || 'ミル造') : 'ミル造';
     const key = apiKeyInput.value.trim();
     const model = geminiModelSelect ? geminiModelSelect.value : 'gemini-3.6-flash';
-    state.updateSettings({ geminiApiKey: key, geminiModel: model });
+    state.updateSettings({ userName, geminiApiKey: key, geminiModel: model });
     settingsModal.classList.add('hidden');
-    alert(`設定を保存しました！\n選択中モデル: ${model}` + (key ? '\n本物のGoogle Gemini APIと通信します。' : '\n※APIキー未入力のため内蔵シミュレーションモードで動作します。'));
+    alert(`設定を保存しました！\nユーザー名: ${userName}\n選択中モデル: ${model}` + (key ? '\n本物のGoogle Gemini APIと通信します。' : '\n※APIキー未入力のため内蔵シミュレーションモードで動作します。'));
   });
 
   // 初期描画
