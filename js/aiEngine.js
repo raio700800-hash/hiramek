@@ -86,14 +86,33 @@ class AIEngine {
 }
 `;
 
-    const userContent = `【対象の親ノード】: 「${parentNode.title}」\n【詳細メモ】: 「${parentNode.content || 'なし'}」\n【ユーザーの質問・相談】: 「${promptText}」`;
+    let userContent = `【対象の親ノード】: 「${parentNode.title}」\n【詳細メモ】: 「${parentNode.content || 'なし'}」\n【ユーザーの質問・相談】: 「${promptText}」`;
+    const parts = [];
+
+    // 📷 親ノードに参照画像が添付されている場合、マルチモーダル入力としてGeminiへ送信！
+    if (parentNode.image && typeof parentNode.image === 'string' && parentNode.image.startsWith('data:')) {
+      const match = parentNode.image.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        const mimeType = match[1];
+        const base64Data = match[2];
+        userContent += `\n【添付された参照画像】: この親ノードには手書きメモ・図解・UI・写真等の参照画像が添付されています。画像内のテキストや図、レイアウトなどの内容をしっかりと認識・理解し、その画像内容を踏まえて回答および思考ノードを提案してください。`;
+        parts.push({
+          inlineData: {
+            mimeType: mimeType,
+            data: base64Data
+          }
+        });
+      }
+    }
+
+    parts.unshift({ text: systemInstruction + '\n\n' + userContent });
 
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [
-          { role: 'user', parts: [{ text: systemInstruction + '\n\n' + userContent }] }
+          { role: 'user', parts: parts }
         ],
         generationConfig: {
           responseMimeType: 'application/json'
@@ -125,8 +144,35 @@ class AIEngine {
     let generatedItems = [];
     let replyMsg = '';
 
+    // 📷 参照画像付き思考展開（シミュレーター：ミル造さんご要望の画像連動思考）
+    if (parentNode.image || text.includes('画像') || text.includes('写真') || text.includes('図') || text.includes('メモ') || text.includes('手書き')) {
+      generatedItems = [
+        {
+          title: `図解要素の概念抽出`,
+          content: `添付画像に描かれた主要な構成要素やキーワードを読み解き、中心テーマとの関係性を論理的に整理する`,
+          status: 'None',
+          nodeType: 'Idea',
+          roleTag: 'Perspective'
+        },
+        {
+          title: `手書き要点のデジタル構造化`,
+          content: `画像内のメモや矢印の流れを分析し、実行可能なタスクや次のステップへ変換する`,
+          status: 'None',
+          nodeType: 'Task',
+          roleTag: 'Verification'
+        },
+        {
+          title: `新アイデア派生・改善仮説`,
+          content: `画像に示された現状の構成に対し、さらに発展・改善できる新たなアプローチや工夫点を導出する`,
+          status: 'None',
+          nodeType: 'Idea',
+          roleTag: 'Solution'
+        }
+      ];
+      replyMsg = `「${topic}」に添付された参照画像を認識しました！\n画像内の図解・テキスト情報をもとに、概念抽出、タスク構造化、改善仮説の3つのノードを展開しました。`;
+    }
     // 0. 仕組み・機構・アーキテクチャへの問い
-    if (text.includes('仕組み') || text.includes('しくみ') || text.includes('機構') || text.includes('アーキテクチャ') || text.includes('どう動く') || text.includes('構造') || text.includes('メカニズム')) {
+    else if (text.includes('仕組み') || text.includes('しくみ') || text.includes('機構') || text.includes('アーキテクチャ') || text.includes('どう動く') || text.includes('構造') || text.includes('メカニズム')) {
       generatedItems = [
         {
           title: `自動ツリーレイアウト機構`,

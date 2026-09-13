@@ -20,6 +20,71 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#39;');
   }
 
+  /**
+   * 🖼️ 画像をVGAサイズ（最大640x480）に軽量圧縮する関数（ミル造さんご要望）
+   * 動作を重くせず、LocalStorageやJSONバックアップにも優しい約30〜50KBに圧縮します
+   */
+  function compressImageToVGA(file, callback) {
+    if (!file || !file.type.startsWith('image/')) {
+      alert('画像ファイル（PNG/JPEG/WebP等）を選択してください。');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 640;
+        const maxH = 480;
+        let w = img.width;
+        let h = img.height;
+
+        if (w > maxW || h > maxH) {
+          if (w / h > maxW / maxH) {
+            h = Math.round((h * maxW) / w);
+            w = maxW;
+          } else {
+            w = Math.round((w * maxH) / h);
+            h = maxH;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // JPEG 75%品質で圧縮（VGAサイズで約30〜50KB）
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        callback(compressedDataUrl);
+      };
+      img.onerror = () => {
+        alert('画像の読み込みに失敗しました。別の画像をお試しください。');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /**
+   * 🔍 画像拡大ライトボックスモーダルを開く
+   */
+  function openLightbox(src, caption = '') {
+    if (!imageLightboxModal || !lightboxImage) return;
+    lightboxImage.src = src;
+    if (lightboxCaption) lightboxCaption.textContent = caption;
+    imageLightboxModal.classList.remove('hidden');
+  }
+
+  /**
+   * ✖️ 画像拡大ライトボックスモーダルを閉じる
+   */
+  function closeLightbox() {
+    if (!imageLightboxModal || !lightboxImage) return;
+    imageLightboxModal.classList.add('hidden');
+    lightboxImage.src = '';
+  }
+
   // 左ペイン要素
   const leftSidebar = document.getElementById('left-sidebar');
   const btnCollapseSidebar = document.getElementById('btn-collapse-sidebar');
@@ -42,6 +107,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const editorNodeRole = document.getElementById('editor-node-role');
   const editorDeleteBtn = document.getElementById('editor-delete-btn');
   const editorAddChildBtn = document.getElementById('editor-add-child-btn');
+
+  // 📷 ノード参照画像要素（ミル造さんご要望: VGA軽量化＆ノード内サムネイル）
+  const nodeImagePreviewContainer = document.getElementById('node-image-preview-container');
+  const nodeImagePreviewImg = document.getElementById('node-image-preview-img');
+  const btnReplaceNodeImage = document.getElementById('btn-replace-node-image');
+  const btnDeleteNodeImage = document.getElementById('btn-delete-node-image');
+  const nodeImageUploadArea = document.getElementById('node-image-upload-area');
+  const nodeImageFileInput = document.getElementById('node-image-file-input');
+
+  // 🔍 画像拡大ライトボックス要素
+  const imageLightboxModal = document.getElementById('image-lightbox-modal');
+  const closeLightboxBtn = document.getElementById('close-lightbox-btn');
+  const lightboxImage = document.getElementById('lightbox-image');
+  const lightboxCaption = document.getElementById('lightbox-caption');
 
   // ノード色分け & グループ分け要素
   const editorNodeGroup = document.getElementById('editor-node-group');
@@ -703,6 +782,8 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2', 'scale-110');
         });
       }
+      if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
+      if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
       renderCustomTags(null, data);
       return;
     }
@@ -728,6 +809,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (editorDeleteBtn) editorDeleteBtn.disabled = !node.parentId;
     if (editorAddChildBtn) editorAddChildBtn.disabled = false;
+
+    // 📷 参照画像のプレビュー同期（ミル造さんご要望）
+    if (node.image) {
+      if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.remove('hidden');
+      if (nodeImagePreviewImg) nodeImagePreviewImg.src = node.image;
+      if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
+    } else {
+      if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
+      if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
+    }
 
     // 🌱 ノード誕生きっかけバッジの即時反映（スクロール不要！）
     if (nodeOriginCard && nodeOriginText) {
@@ -826,12 +917,30 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="chat-origin-badge">✨ このノードを生んだ対話</span>
           </div>
           <div class="whitespace-pre-wrap">${escapeHtml(msg.text)}</div>
+          ${msg.image ? `
+            <div class="chat-image-card my-2 shadow-2xs border border-slate-200/60 rounded-xl overflow-hidden bg-black/5" data-image="${msg.image}" title="クリックで拡大表示">
+              <img src="${msg.image}" alt="参照画像" class="rounded-xl">
+              <div class="image-zoom-overlay">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                <span>クリックで拡大</span>
+              </div>
+            </div>
+          ` : ''}
           <div class="text-[9px] mt-1 opacity-60 text-right flex items-center justify-end gap-1">
             ${msg.linkedNodeIds && msg.linkedNodeIds.length > 0 ? '<span class="text-amber-600 font-semibold">📍ノード連動</span>' : ''}
             <span>${msg.timestamp}</span>
           </div>
         </div>
       `;
+
+      // 🔍 画像クリック時はノードジャンプではなくライトボックスを開く
+      const chatImgCard = msgDiv.querySelector('.chat-image-card');
+      if (chatImgCard && msg.image) {
+        chatImgCard.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openLightbox(msg.image, 'チャット参照画像プレビュー');
+        });
+      }
 
       // 会話クリックで該当ノードへジャンプ＆ハイライト（成果ノード優先＆テキストフォールバック）
       msgDiv.addEventListener('click', () => {
@@ -1024,6 +1133,137 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ===========================================================================
+  // 📷 参照画像の添付・削除・ライトボックス制御（ミル造さんご要望）
+  // ===========================================================================
+  function attachImageToCurrentNode(file) {
+    const selId = state.data.selectedNodeId;
+    if (!selId) {
+      alert('画像を添付するノードを選択してください。');
+      return;
+    }
+    const node = state.data.nodes[selId];
+    if (!node) return;
+
+    compressImageToVGA(file, (compressedDataUrl) => {
+      // 1. ノードにVGA圧縮画像を保存
+      state.updateNode(selId, { image: compressedDataUrl });
+
+      // 2. チャット履歴に「画像を添付しました」メッセージを追加（画像プレビュー付き）
+      state.addMessage('user', `📷 「${node.title || 'ノード'}」に参照画像を添付しました`, [selId], { image: compressedDataUrl });
+
+      // 3. エディタプレビュー更新
+      if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.remove('hidden');
+      if (nodeImagePreviewImg) nodeImagePreviewImg.src = compressedDataUrl;
+      if (nodeImageUploadArea) nodeImageUploadArea.classList.add('hidden');
+    });
+  }
+
+  // 1. アップロード枠クリックでファイル選択
+  if (nodeImageUploadArea && nodeImageFileInput) {
+    nodeImageUploadArea.addEventListener('click', () => {
+      nodeImageFileInput.value = '';
+      nodeImageFileInput.click();
+    });
+  }
+
+  // 2. 差し替えボタンクリック
+  if (btnReplaceNodeImage && nodeImageFileInput) {
+    btnReplaceNodeImage.addEventListener('click', () => {
+      nodeImageFileInput.value = '';
+      nodeImageFileInput.click();
+    });
+  }
+
+  // 3. ファイルinput変更イベント
+  if (nodeImageFileInput) {
+    nodeImageFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        attachImageToCurrentNode(file);
+      }
+    });
+  }
+
+  // 4. 画像削除ボタン
+  if (btnDeleteNodeImage) {
+    btnDeleteNodeImage.addEventListener('click', () => {
+      const selId = state.data.selectedNodeId;
+      if (!selId) return;
+      if (confirm('添付されている参照画像を削除しますか？')) {
+        state.updateNode(selId, { image: null });
+        if (nodeImagePreviewContainer) nodeImagePreviewContainer.classList.add('hidden');
+        if (nodeImageUploadArea) nodeImageUploadArea.classList.remove('hidden');
+      }
+    });
+  }
+
+  // 5. エディタ内のサムネイルクリックで拡大ライトボックス
+  if (nodeImagePreviewImg) {
+    nodeImagePreviewImg.addEventListener('click', () => {
+      const selId = state.data.selectedNodeId;
+      const node = selId ? state.data.nodes[selId] : null;
+      if (node && node.image) {
+        openLightbox(node.image, `「${node.title || 'ノード'}」の参照画像`);
+      }
+    });
+  }
+
+  // 6. 🖱️ ドラッグ＆ドロップ対応（画面全体どこでも画像ドロップで選択ノードに添付）
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        attachImageToCurrentNode(file);
+      }
+    }
+  });
+
+  // 7. 📋 クリップボード貼り付け（Cmd+V / Ctrl+V）対応
+  window.addEventListener('paste', (e) => {
+    // inputやtextareaに通常のテキスト入力中は誤爆を防ぐ
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') && activeEl.id !== 'prompt-input') {
+      return;
+    }
+
+    if (e.clipboardData && e.clipboardData.items) {
+      for (let i = 0; i < e.clipboardData.items.length; i++) {
+        const item = e.clipboardData.items[i];
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            attachImageToCurrentNode(file);
+            break;
+          }
+        }
+      }
+    }
+  });
+
+  // 8. 🔍 ライトボックスモーダルを閉じるイベント
+  if (closeLightboxBtn) {
+    closeLightboxBtn.addEventListener('click', closeLightbox);
+  }
+  if (imageLightboxModal) {
+    imageLightboxModal.addEventListener('click', (e) => {
+      if (e.target === imageLightboxModal) {
+        closeLightbox();
+      }
+    });
+  }
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && imageLightboxModal && !imageLightboxModal.classList.contains('hidden')) {
+      closeLightbox();
+    }
+  });
 
   // ===========================================================================
   // 💬 プロンプト送信（IME確定ガード ＆ 問答双方向リンク ＆ 思考中ローディング）

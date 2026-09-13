@@ -722,12 +722,13 @@ class MindMapState {
     }
   }
 
-  addMessage(sender, text, linkedNodeIds = []) {
+  addMessage(sender, text, linkedNodeIds = [], meta = {}) {
     const msg = {
       id: 'msg-' + Date.now(),
       sender: sender,
       text: text,
       linkedNodeIds: Array.isArray(linkedNodeIds) ? linkedNodeIds : (linkedNodeIds ? [linkedNodeIds] : []),
+      image: meta.image || null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     this.data.messages.push(msg);

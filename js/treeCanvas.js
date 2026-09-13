@@ -811,9 +811,14 @@ class MindMapTreeCanvas {
             ${groupBadgeHtml}
           </div>
 
-          <!-- 📝 ノード要約タイトル（純粋な内容のみを2行まで大きく表示！） -->
-          <div class="font-bold text-slate-800 text-xs leading-snug line-clamp-2" title="${safeTitle}">
-            ${safeTitle}
+          <!-- 📝 ノード要約タイトル ＆ 📷 参照画像サムネイル（左横に36x36px配置） -->
+          <div class="flex items-center gap-2">
+            ${node.image ? `
+              <img src="${node.image}" alt="サムネイル" class="node-thumb-img pointer-events-none shrink-0" title="参照画像あり">
+            ` : ''}
+            <div class="font-bold text-slate-800 text-xs leading-snug line-clamp-2 flex-1 min-w-0" title="${safeTitle}">
+              ${safeTitle}
+            </div>
           </div>
         </div>
       `;

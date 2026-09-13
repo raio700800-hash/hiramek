@@ -510,4 +510,94 @@ body.theme-chalkboard #ai-thinking-indicator .thinking-status-text {
   color: #a7f3d0 !important;
 }
 
+/* ==========================================================================
+   🖼️ 参照画像スタイル（ノード内サムネイル ＆ チャット画像 ＆ ライトボックス）
+   ========================================================================== */
+
+/* 1. ノードカード内のコンパクト正方形サムネイル（約36x36px） */
+.node-thumb-img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.node-thumb-img:hover {
+  transform: scale(1.06);
+}
+
+/* 黒板モードでのノード内サムネイル */
+body.theme-chalkboard .node-thumb-img {
+  border-color: #34d399 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 2. チャット吹き出し内の画像添付カード */
+.chat-image-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  cursor: pointer;
+  max-width: 220px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-image-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.chat-image-card img {
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.chat-image-card .image-zoom-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.chat-image-card:hover .image-zoom-overlay {
+  opacity: 1;
+}
+
+/* 黒板モードでのエディタ内画像枠 */
+body.theme-chalkboard #node-image-upload-area {
+  border-color: #2b6143 !important;
+  background-color: rgba(20, 56, 37, 0.5) !important;
+  color: #a7f3d0 !important;
+}
+
+body.theme-chalkboard #node-image-upload-area:hover {
+  border-color: #34d399 !important;
+  background-color: rgba(20, 56, 37, 0.8) !important;
+}
+
+body.theme-chalkboard #node-image-preview-container {
+  background-color: #143825 !important;
+  border-color: #2b6143 !important;
+  color: #ecfdf5 !important;
+}
+
+body.theme-chalkboard #node-image-preview-container p {
+  color: #ecfdf5 !important;
+}
+
+
 

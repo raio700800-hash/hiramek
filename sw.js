@@ -6,7 +6,7 @@
  * HTML、CSS、JavaScriptなどのファイルを自動キャッシュします。
  */
 
-const CACHE_NAME = 'hiramek-cache-v19';
+const CACHE_NAME = 'hiramek-cache-v20';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
