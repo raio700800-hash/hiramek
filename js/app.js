@@ -1879,6 +1879,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const exportGuideText = document.getElementById('export-guide-text');
+
   const updateExportTabUI = (type) => {
     currentExportType = type;
     exportTabBtns.forEach(btn => {
@@ -1888,6 +1890,21 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.className = 'export-tab-btn px-3 py-1.5 font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-all cursor-pointer';
       }
     });
+
+    // 💡 用途別ガイドヒントの更新
+    if (exportGuideText) {
+      if (type === 'mermaid') {
+        exportGuideText.textContent = 'Notionの「/mermaid」枠の中身を全選択（Cmd+A）し、そのまま貼り付けると図になります';
+      } else if (type === 'notion') {
+        exportGuideText.textContent = 'Notionの通常ページ上でキーボードの「Cmd + V」を押すと、見出しや箇条書きリストになります';
+      } else if (type === 'png') {
+        exportGuideText.textContent = '高解像度PNG画像です。ダウンロードして保存するか、コピーしてNotionに貼り付けられます';
+      } else if (type === 'aicontext') {
+        exportGuideText.textContent = 'ChatGPTやGeminiのチャット欄に貼り付けると、これまでの思考を前提知識として渡せます';
+      } else if (type === 'json') {
+        exportGuideText.textContent = '思考データを完全に復元できるバックアップJSONです。「読み込み」からいつでも復元できます';
+      }
+    }
 
     // 🌟 タブに応じてフッターの「ダウンロード」ボタンの表示とスタイルを最適化！
     if (type === 'png') {
