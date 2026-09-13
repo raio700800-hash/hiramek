@@ -1882,7 +1882,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentExportType === 'aicontext') {
       output = state.exportAsAIContext({ includeDetails, adoptedOnly });
     } else if (currentExportType === 'mermaid') {
-      let chosenFormat = 'mindmap';
+      let chosenFormat = 'flowchart';
       if (exportMermaidFormatRadios) {
         exportMermaidFormatRadios.forEach(r => {
           if (r.checked) chosenFormat = r.value;

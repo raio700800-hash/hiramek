@@ -1408,7 +1408,7 @@ class MindMapState {
   // ===========================================================================
   // 📤 エクスポート: Mermaid (Obsidian / Notion 図解)
   // ===========================================================================
-  exportAsMermaid(options = { adoptedOnly: false, format: 'mindmap' }) {
+  exportAsMermaid(options = { adoptedOnly: false, format: 'flowchart' }) {
     const rootNode = Object.values(this.data.nodes).find(n => !n.parentId) || Object.values(this.data.nodes)[0];
     if (!rootNode) return '';
 
