@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatMessagesElm = document.getElementById('chat-messages');
   const promptInput = document.getElementById('prompt-input');
   const sendPromptBtn = document.getElementById('send-prompt-btn');
+  const aiThinkingIndicator = document.getElementById('ai-thinking-indicator');
 
   // ノード誕生きっかけバッジ要素
   const nodeOriginCard = document.getElementById('node-origin-card');
@@ -1025,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ===========================================================================
-  // 💬 プロンプト送信（IME確定ガード ＆ 問答双方向リンク）
+  // 💬 プロンプト送信（IME確定ガード ＆ 問答双方向リンク ＆ 思考中ローディング）
   // ===========================================================================
   async function handleSendPrompt() {
     const text = promptInput.value.trim();
@@ -1036,6 +1037,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const userMsg = state.addMessage('user', text, [currentSelId]);
     promptInput.value = '';
 
+    // 💡 AI思考中UIのアクティブ化（ミル造さんご要望: 入力欄上部のスライド点滅＆ドットアニメーション）
+    if (aiThinkingIndicator) {
+      aiThinkingIndicator.classList.remove('hidden');
+      const statusText = aiThinkingIndicator.querySelector('.thinking-status-text');
+      if (statusText) statusText.textContent = 'アイデアを深掘り中…';
+    }
+    promptInput.disabled = true;
     sendPromptBtn.disabled = true;
     sendPromptBtn.innerHTML = `
       <svg class="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
@@ -1043,6 +1051,27 @@ document.addEventListener('DOMContentLoaded', () => {
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
       </svg>
     `;
+
+    // チャット履歴最下部にも思考中バブルを表示
+    const thinkingBubble = document.createElement('div');
+    thinkingBubble.id = 'chat-thinking-bubble';
+    thinkingBubble.className = 'chat-msg-item flex gap-2.5 items-start chat-msg-ai p-2 rounded-2xl animate-pulse';
+    thinkingBubble.innerHTML = `
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 shadow-2xs bg-amber-100 text-amber-800">
+        🤖
+      </div>
+      <div class="chat-bubble rounded-2xl px-3.5 py-2 text-xs leading-relaxed shadow-2xs border bg-amber-50/90 border-amber-200 text-amber-900 flex items-center gap-2">
+        <span>💭</span>
+        <span class="font-medium">AIが考え中</span>
+        <div class="thinking-dots flex items-center gap-1">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+    `;
+    chatMessagesElm.appendChild(thinkingBubble);
+    chatMessagesElm.scrollTop = chatMessagesElm.scrollHeight;
 
     try {
       const result = await aiEngine.processUserPrompt(text, currentSelId);
@@ -1064,6 +1093,15 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('プロンプト処理エラー:', err);
       state.addMessage('ai', 'エラーが発生しました: ' + err.message);
     } finally {
+      // 💡 AI思考中UIの非表示化
+      if (aiThinkingIndicator) {
+        aiThinkingIndicator.classList.add('hidden');
+      }
+      const tb = document.getElementById('chat-thinking-bubble');
+      if (tb) tb.remove();
+
+      promptInput.disabled = false;
+      promptInput.focus();
       sendPromptBtn.disabled = false;
       sendPromptBtn.innerHTML = `
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1086,6 +1124,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===========================================================================
   // ⚡ 8大AI思考コマンド
   // ===========================================================================
+  const commandLabels = {
+    expand: '展開（発散）コマンドを実行中…',
+    deepen: '深掘り（具体化）コマンドを実行中…',
+    alternative: '別案探索コマンドを実行中…',
+    taskify: 'ToDo化コマンドを実行中…',
+    example: '具体例出しコマンドを実行中…',
+    why: 'なぜなぜ深掘りを実行中…',
+    proscons: 'メリデメ比較コマンドを実行中…',
+    summarize: '要約・整理コマンドを実行中…'
+  };
+
   async function handleAICommand(type) {
     const selId = state.data.selectedNodeId;
     if (!selId) return;
@@ -1096,12 +1145,21 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     btns.forEach(b => { if (b) b.disabled = true; });
 
+    if (aiThinkingIndicator) {
+      aiThinkingIndicator.classList.remove('hidden');
+      const statusText = aiThinkingIndicator.querySelector('.thinking-status-text');
+      if (statusText) statusText.textContent = commandLabels[type] || '思考コマンドを実行中…';
+    }
+
     try {
       await aiEngine.executeCommand(type, selId);
     } catch (err) {
       console.error('AIコマンド実行エラー:', err);
     } finally {
       btns.forEach(b => { if (b) b.disabled = false; });
+      if (aiThinkingIndicator) {
+        aiThinkingIndicator.classList.add('hidden');
+      }
     }
   }
 

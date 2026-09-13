@@ -775,7 +775,8 @@ class MindMapTreeCanvas {
         <div id="node-elm-${node.id}" 
              class="mind-node absolute ${theme.bg} rounded-xl px-3 py-2 border shadow-2xs ${visualBorderClass} flex flex-col justify-center select-none group transition-colors duration-200"
              style="width: ${this.nodeWidth}px; min-height: 68px; left: ${node.x}px; top: ${node.y}px;"
-             data-id="${node.id}">
+             data-id="${node.id}"
+             data-color="${nodeColor}">
           
           <!-- 🌟 外側ボタン 1: ✏️ 編集ボタン（ノードの【左側の上】外側に配置） -->
           <button class="edit-node-btn node-action-btn absolute -top-3.5 -left-3 w-7 h-7 bg-white border border-amber-300 text-amber-600 hover:bg-amber-500 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all duration-150 z-20 hover:scale-110" 
