@@ -326,6 +326,8 @@ body.theme-chalkboard section > div.absolute.top-3.right-4 button,
 body.theme-chalkboard section > div.absolute.top-3.right-4 select,
 body.theme-chalkboard section > div.absolute.top-4.right-4 button,
 body.theme-chalkboard section > div.absolute.top-4.right-4 select {
+  background-color: transparent !important;
+  border-color: transparent !important;
   color: #cbdad1 !important;
 }
 
