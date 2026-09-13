@@ -6,7 +6,7 @@
   <title>Hiramek (ヒラメック) — ひらめきを構造化する思考マインドマップ</title>
   
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23f59e0b'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white'>💡</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="./css/style.css?v=24">
+  <link rel="stylesheet" href="./css/style.css?v=25">
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-screen overflow-hidden">
 
@@ -94,7 +94,24 @@
       </div>
 
       <!-- 選択ノードの詳細エディタ（重複見出し行を削除しスッキリ！） -->
-      <div class="border-t border-slate-200 p-3 bg-slate-50 shrink-0 space-y-2.5 max-h-[42%] overflow-y-auto">
+      <div id="node-editor-panel" class="border-t border-slate-200 p-3 bg-slate-50 shrink-0 space-y-2.5 max-h-[42%] overflow-y-auto">
+        <!-- ノード操作クイックアクションバー（子ノード追加・削除） -->
+        <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-200/80">
+          <button id="editor-add-child-btn" 
+                  type="button" 
+                  class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer active:scale-95"
+                  title="選択中のノードから新しい子アイデア・タスクを派生">
+            <span>🌿 ＋子ノード追加</span>
+          </button>
+          <button id="editor-delete-btn" 
+                  type="button" 
+                  class="flex items-center justify-center gap-1 py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="選択中のノード（およびその子孫）を削除">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            <span>削除</span>
+          </button>
+        </div>
+
         <!-- タイトル編集 -->
         <div>
           <label class="block text-[10px] text-slate-500 mb-0.5">ノードの要約タイトル</label>
@@ -919,10 +936,10 @@
     </div>
   </div>
 
-  <script src="./js/state.js?v=24"></script>
-  <script src="./js/treeCanvas.js?v=24"></script>
-  <script src="./js/aiEngine.js?v=24"></script>
-  <script src="./js/pwa.js?v=24"></script>
-  <script src="./js/app.js?v=24"></script>
+  <script src="./js/state.js?v=25"></script>
+  <script src="./js/treeCanvas.js?v=25"></script>
+  <script src="./js/aiEngine.js?v=25"></script>
+  <script src="./js/pwa.js?v=25"></script>
+  <script src="./js/app.js?v=25"></script>
 </body>
 </html>

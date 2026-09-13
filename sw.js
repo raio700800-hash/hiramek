@@ -6,7 +6,7 @@
  * HTML、CSS、JavaScriptなどのファイルを自動キャッシュします。
  */
 
-const CACHE_NAME = 'hiramek-cache-v24';
+const CACHE_NAME = 'hiramek-cache-v25';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -16,7 +16,8 @@ const ASSETS_TO_CACHE = [
   './js/treeCanvas.js',
   './js/aiEngine.js',
   './js/pwa.js',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './icon.svg'
 ];
 
 // インストール時にコアアセットをキャッシュ＆即座に待機解除

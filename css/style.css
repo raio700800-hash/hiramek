@@ -264,6 +264,41 @@ body.theme-chalkboard #chat-panel {
 
 body.theme-chalkboard #node-editor-panel {
   background-color: #0e2218 !important;
+  border-top-color: #1a3c2a !important;
+  color: #e2ebe5 !important;
+}
+
+body.theme-chalkboard #node-editor-panel label {
+  color: #8fae9b !important;
+}
+
+body.theme-chalkboard #node-editor-panel [class*="bg-slate-100"] {
+  background-color: #142f21 !important;
+  border-color: #235239 !important;
+}
+
+body.theme-chalkboard #node-editor-panel .border-b {
+  border-bottom-color: #1a3c2a !important;
+}
+
+body.theme-chalkboard #editor-add-child-btn {
+  background-color: #1a3c2a !important;
+  color: #6ee7b7 !important;
+  border-color: #235239 !important;
+}
+body.theme-chalkboard #editor-add-child-btn:hover {
+  background-color: #235239 !important;
+  border-color: #34d399 !important;
+}
+
+body.theme-chalkboard #editor-delete-btn {
+  background-color: #2a151b !important;
+  color: #fca5a5 !important;
+  border-color: #4c1d24 !important;
+}
+body.theme-chalkboard #editor-delete-btn:hover:not(:disabled) {
+  background-color: #3b1c24 !important;
+  border-color: #f87171 !important;
 }
 
 /* 入力欄 */

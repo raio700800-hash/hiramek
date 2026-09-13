@@ -755,6 +755,10 @@ document.addEventListener('DOMContentLoaded', () => {
       renderChatMessages(data);
     }
 
+    if (eventType === 'storage_quota_exceeded') {
+      alert(`⚠️ 【データ保存の容量警告】\n${payload.message}`);
+    }
+
     if (eventType === 'node_selected') {
       highlightLinkedChatMessages(payload.nodeId);
     }
@@ -1302,6 +1306,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (chatAttachImageBtn) chatAttachImageBtn.addEventListener('click', ensureSelectedNodeForUpload);
   if (chatClipImageBtn) chatClipImageBtn.addEventListener('click', ensureSelectedNodeForUpload);
 
+  // 🌟 入力枠内カメラアイコンのドット（添付中マーク）クリックで画像解除
+  if (chatImageDot) {
+    chatImageDot.style.cursor = 'pointer';
+    chatImageDot.title = '画像が添付されています（クリックで解除）';
+    chatImageDot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const selId = state.data.selectedNodeId;
+      if (!selId) return;
+      if (confirm('添付されている参照画像を解除（削除）しますか？\n（ノードとチャット双方から安全に削除されます）')) {
+        state.removeNodeImage(selId);
+      }
+    });
+  }
+
   // 🌟 チャット欄バッジの削除（×）ボタン
   if (chatDetachImageBtn) {
     chatDetachImageBtn.addEventListener('click', () => {
@@ -1421,9 +1440,66 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  // ⌨️ グローバルキーボードショートカット（Escでモーダル閉じる ＆ Cmd+ZでUndo/Redo）
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && imageLightboxModal && !imageLightboxModal.classList.contains('hidden')) {
-      closeLightbox();
+    // 1. Escape キー: 開いているモーダルを閉じる
+    if (e.key === 'Escape') {
+      if (imageLightboxModal && !imageLightboxModal.classList.contains('hidden')) {
+        closeLightbox();
+        return;
+      }
+      if (settingsModal && !settingsModal.classList.contains('hidden')) {
+        settingsModal.classList.add('hidden');
+        return;
+      }
+      if (newTopicModal && !newTopicModal.classList.contains('hidden')) {
+        newTopicModal.classList.add('hidden');
+        return;
+      }
+      if (importModal && !importModal.classList.contains('hidden')) {
+        importModal.classList.add('hidden');
+        return;
+      }
+      if (exportModal && !exportModal.classList.contains('hidden')) {
+        exportModal.classList.add('hidden');
+        return;
+      }
+      if (addNodeModal && !addNodeModal.classList.contains('hidden')) {
+        addNodeModal.classList.add('hidden');
+        return;
+      }
+      if (groupCreateModal && !groupCreateModal.classList.contains('hidden')) {
+        groupCreateModal.classList.add('hidden');
+        return;
+      }
+      if (frameCreateModal && !frameCreateModal.classList.contains('hidden')) {
+        frameCreateModal.classList.add('hidden');
+        return;
+      }
+      if (frameEditModal && !frameEditModal.classList.contains('hidden')) {
+        frameEditModal.classList.add('hidden');
+        return;
+      }
+    }
+
+    // 2. Cmd+Z / Ctrl+Z (Undo) & Cmd+Shift+Z / Ctrl+Y (Redo)
+    const isInputActive = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+    if (!isInputActive) {
+      const isMac = typeof navigator !== 'undefined' && navigator.platform && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+      if (modKey && !e.altKey) {
+        if (e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            state.redo();
+          } else {
+            state.undo();
+          }
+        } else if (!isMac && e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          state.redo();
+        }
+      }
     }
   });
 

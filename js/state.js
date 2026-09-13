@@ -852,6 +852,11 @@ class MindMapState {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
       console.warn('LocalStorage 保存エラー:', e);
+      // ⚠️ 容量オーバー（QuotaExceededError）または保存失敗をリスナーへ通知
+      this.notify('storage_quota_exceeded', {
+        error: e,
+        message: 'ブラウザの保存容量上限（約5MB）に達した可能性があります。不要な画像を削除するか、右上の「書き出し」ボタンからJSONファイルを保存してください。'
+      });
     }
   }
 
